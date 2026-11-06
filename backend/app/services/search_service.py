@@ -132,8 +132,8 @@ def _generate_verified_cached_fallbacks(parsed: ParsedQuery, pin_code: str) -> L
         configs = [
             {"id": "zepto", "name": "Zepto", "cat": "quick_commerce", "title": f"{full_title} (Pouch)", "price": 173.0, "mrp": 203.0, "rating": 4.5, "count": 320, "in_stock": True, "time": "10 mins"},
             {"id": "bigbasket", "name": "BigBasket", "cat": "grocery", "title": f"{full_title} - Pouch", "price": 174.0, "mrp": 203.0, "rating": 4.4, "count": 1420, "in_stock": True, "time": "2 Hours"},
-            {"id": "amazon", "name": "Amazon India", "cat": "ecommerce", "title": full_title, "price": 175.0, "mrp": 205.0, "rating": 4.4, "count": 890, "in_stock": True, "time": "Tomorrow"},
             {"id": "jiomart", "name": "JioMart", "cat": "grocery", "title": f"{full_title} Pouch", "price": 173.5, "mrp": 203.0, "rating": 4.3, "count": 610, "in_stock": True, "time": "Today"},
+            {"id": "amazon", "name": "Amazon India", "cat": "ecommerce", "title": full_title, "price": 229.0, "mrp": 245.0, "rating": 4.5, "count": 15, "in_stock": True, "time": "Tomorrow"},
             {"id": "flipkart", "name": "Flipkart", "cat": "ecommerce", "title": f"{full_title} - Pouch", "price": 178.0, "mrp": 205.0, "rating": 4.3, "count": 980, "in_stock": False, "time": "Currently Unavailable"},
             {"id": "blinkit", "name": "Blinkit", "cat": "quick_commerce", "title": full_title, "price": 169.0, "mrp": 203.0, "rating": 4.6, "count": 540, "in_stock": False, "time": "Currently Unavailable"},
         ]
