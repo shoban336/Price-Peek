@@ -76,8 +76,9 @@ export default function PriceComparisonTable({ listings, cheapestId }) {
                     rel="noopener noreferrer"
                     className="btn-view-deal"
                     style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'inline-flex' }}
+                    title={`Open exact product page on ${item.platform_name} to Add to Cart`}
                   >
-                    <span>Deal</span>
+                    <span>View & Buy</span>
                     <ExternalLink size={13} />
                   </a>
                 </td>

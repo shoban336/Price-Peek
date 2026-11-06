@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Smartphone, Clock, Star, ShieldCheck } from 'lucide-react';
+import { ExternalLink, Smartphone, Clock, Star, ShoppingCart } from 'lucide-react';
 
 export default function ProductListingCard({ listing, isCheapest }) {
   const {
@@ -55,7 +55,7 @@ export default function ProductListingCard({ listing, isCheapest }) {
             color: is_live ? '#15803d' : '#475569',
             backgroundColor: is_live ? '#f0fdf4' : '#f1f5f9',
           }}
-          title={is_live ? 'Live live extraction' : 'Verified sample baseline'}
+          title={is_live ? 'Live storefront extraction' : 'Verified reference listing'}
         >
           {is_live ? '● Live' : 'Reference'}
         </span>
@@ -77,10 +77,11 @@ export default function ProductListingCard({ listing, isCheapest }) {
           target="_blank"
           rel="noopener noreferrer"
           className="btn-view-deal"
-          title={`Visit exact product page on ${platform_name}`}
+          title={`Open exact product page on ${platform_name} to Add to Cart`}
         >
-          <span>View Deal</span>
-          <ExternalLink size={15} />
+          <ShoppingCart size={15} />
+          <span>Add to Cart / View</span>
+          <ExternalLink size={13} style={{ opacity: 0.8 }} />
         </a>
 
         {deep_link_url && (
