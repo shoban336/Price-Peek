@@ -56,8 +56,8 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
         elif platform_id == "bigbasket":
             return (
-                "https://www.bigbasket.com/pd/274145/gold-winner-refined-sunflower-oil-1-l-pouch/",
-                "bigbasket://product/274145"
+                "https://www.bigbasket.com/pd/274141/gold-winner-refined-sunflower-oil-1-l-pouch/",
+                "bigbasket://product/274141"
             )
         elif platform_id == "jiomart":
             return (
