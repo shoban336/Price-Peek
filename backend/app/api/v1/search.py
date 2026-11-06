@@ -5,10 +5,8 @@ from app.config.settings import get_settings
 from app.schemas.search_schema import (
     SearchRequest,
     SearchResponse,
-    ParsedQuery,
-    ComparisonSummary,
-    ProductListing,
 )
+from app.services.search_service import execute_universal_search
 
 router = APIRouter(prefix="/search", tags=["Universal Search"])
 settings = get_settings()
@@ -18,34 +16,34 @@ settings = get_settings()
 async def search_products(
     q: str = Query(..., min_length=1, description="Universal search query (e.g. 'Gold Winner Sunflower Oil 1L')"),
     pin_code: Optional[str] = Query(None, description="6-digit Indian Postal Delivery PIN code"),
-    sort_by: str = Query("price_asc", description="Sorting criteria (price_asc, price_desc, discount_desc)")
+    sort_by: str = Query("price_asc", description="Sorting criteria: price_asc, price_desc, discount_desc, rating_desc"),
+    platforms: Optional[str] = Query(None, description="Comma-separated platform IDs to filter (e.g. 'amazon,blinkit')")
 ) -> SearchResponse:
     """Universal product search across all active registered shopping platforms.
     
-    Extracts brand/unit/variant attributes, delegates to registered platform connectors,
-    and returns matched and price-ranked listings with mandatory direct links.
+    1. Parses query into brand, unit, model, variant.
+    2. Dynamically queries registered platform connectors filtered by PIN code.
+    3. Matches identical products using strict unit and variant separation.
+    4. Analyzes price spread with Pandas/NumPy, flags cheapest option, and returns direct product links.
     """
     effective_pin = pin_code or settings.DEFAULT_PIN_CODE
+    platform_list = [p.strip() for p in platforms.split(",")] if platforms else None
     
-    # Placeholder for Phase 2 API skeleton - replaced dynamically by orchestrator in Phase 3-5
-    from app.intelligence.parser import parse_query
-    parsed = parse_query(q)
-    
-    summary = ComparisonSummary(
-        cheapest_platform=None,
-        cheapest_platform_id=None,
-        lowest_price=None,
-        highest_price=None,
-        average_price=None,
-        max_savings=None,
-        total_active_listings=0,
-        total_platforms_queried=0,
-    )
-    
-    return SearchResponse(
+    return await execute_universal_search(
         query=q,
-        delivery_pin=effective_pin,
-        parsed_query=parsed,
-        summary=summary,
-        listings=[]
+        pin_code=effective_pin,
+        sort_by=sort_by,
+        platform_ids=platform_list
+    )
+
+
+@router.post("", response_model=SearchResponse)
+async def search_products_post(payload: SearchRequest) -> SearchResponse:
+    """POST endpoint for structured search requests."""
+    effective_pin = payload.pin_code or settings.DEFAULT_PIN_CODE
+    return await execute_universal_search(
+        query=payload.query,
+        pin_code=effective_pin,
+        sort_by=payload.sort_by or "price_asc",
+        platform_ids=payload.platforms
     )
