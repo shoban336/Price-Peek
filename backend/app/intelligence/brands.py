@@ -7,21 +7,24 @@ from app.schemas.platform_schema import PlatformCategory
 
 # Common high-frequency multi-word and single-word brand prefixes
 KNOWN_BRANDS = [
-    # Grocery / FMCG
+    # Grocery / FMCG / Hygiene
     "Gold Winner", "Fortune", "Tata Sampann", "Tata Salt", "Tata Tea", "Aashirvaad",
     "Amul", "Mother Dairy", "Saffola", "Dhara", "India Gate", "Daawat", "Nestle",
     "Cadbury", "Britannia", "Sunfeast", "Parle", "Haldiram's", "Everest", "MDH",
+    "Dettol", "Lifebuoy", "Savlon", "Godrej", "Cinthol", "Pears", "Lux", "Surf Excel",
+    "Ariel", "Vim", "Pril", "Harpic", "Lizol", "Colin",
     # Electronics
     "Apple", "Samsung", "Google Pixel", "OnePlus", "Xiaomi", "Realme", "Vivo", "Oppo",
     "Sony", "HP", "Dell", "Lenovo", "Asus", "Acer", "Boat", "Noise", "JBL", "Bose",
-    "LG", "Whirlpool", "Panasonic", "Motorola", "Nothing",
+    "LG", "Whirlpool", "Panasonic", "Motorola", "Nothing", "Spigen", "Portronics",
     # Personal Care / Beauty / Pharmacy
     "Dove", "Nivea", "L'Oreal", "Garnier", "Tresemme", "Head & Shoulders", "Pantene",
     "Mamaearth", "Cetaphil", "Neutrogena", "Minimalist", "The Derma Co", "Colgate",
-    "Dolo", "Crocin", "Combiflam", "Vicks", "Himalaya", "Dabur", "Baidyanath",
+    "Dolo", "Crocin", "Combiflam", "Vicks", "Himalaya", "Dabur", "Baidyanath", "Nykaa",
     # Fashion
     "Nike", "Adidas", "Puma", "Reebok", "Under Armour", "Levi's", "Zara", "H&M",
-    "Allen Solly", "Peter England", "Louis Philippe", "Van Heusen", "Red Tape", "Bata"
+    "Allen Solly", "Peter England", "Louis Philippe", "Van Heusen", "Red Tape", "Bata",
+    "Roadster", "HRX", "Highlander", "U.S. Polo", "Wrangler", "Flying Machine"
 ]
 
 CATEGORY_KEYWORDS = {
@@ -29,13 +32,15 @@ CATEGORY_KEYWORDS = {
         "oil", "sunflower", "mustard", "atta", "flour", "rice", "dal", "pulses",
         "sugar", "salt", "tea", "coffee", "milk", "butter", "cheese", "ghee",
         "paneer", "masala", "spices", "biscuit", "cookies", "noodles", "ketchup",
-        "detergent", "soap bar", "surf excel", "vim"
+        "detergent", "soap bar", "surf excel", "vim", "handwash", "hand wash",
+        "dettol", "savlon", "sanitizer", "dishwash", "floor cleaner"
     ],
     PlatformCategory.ELECTRONICS: [
         "phone", "smartphone", "iphone", "galaxy", "pixel", "laptop", "macbook",
         "notebook", "tablet", "ipad", "headphone", "earbuds", "earphone", "tv",
         "television", "smartwatch", "monitor", "charger", "powerbank", "speaker",
-        "camera", "ssd", "ram", "gpu", "processor"
+        "camera", "ssd", "ram", "gpu", "processor", "case", "phone case", "back cover",
+        "cover", "tempered glass", "screen guard", "cable", "adapter", "mouse", "keyboard"
     ],
     PlatformCategory.PHARMACY: [
         "tablet", "tablets", "capsule", "capsules", "syrup", "paracetamol",
@@ -48,9 +53,10 @@ CATEGORY_KEYWORDS = {
         "lipstick", "foundation", "eyeliner", "kajal", "skin cream"
     ],
     PlatformCategory.FASHION: [
-        "shoes", "sneakers", "sandals", "t-shirt", "tshirt", "shirt", "jeans",
-        "trousers", "jacket", "hoodie", "dress", "kurta", "kurti", "saree",
-        "sunglasses", "watch", "handbag", "wallet"
+        "shoes", "sneakers", "sandals", "t-shirt", "tshirt", "tee", "shirt", "shirts",
+        "jeans", "pant", "pants", "trousers", "trouser", "cargo", "shorts", "jacket",
+        "hoodie", "dress", "kurta", "kurti", "saree", "blazer", "suit", "trackpant",
+        "sunglasses", "watch", "handbag", "wallet", "belt"
     ]
 }
 

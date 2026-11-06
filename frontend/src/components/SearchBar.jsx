@@ -3,9 +3,12 @@ import { Search, Sparkles } from 'lucide-react';
 
 const SUGGESTIONS = [
   'Gold Winner Sunflower Oil 1L',
-  'Apple iPhone 15 256GB',
+  'Dettol Handwash 750ml',
+  'iPhone 15 Silicon Phone Case',
+  'Men Slim Fit Cotton Casual Shirt',
+  'Denim Jeans Pants',
+  'Apple iPhone 15 128GB',
   'Dove Intense Repair Shampoo 650ml',
-  'Nike Air Max shoes UK 9',
   'Dolo 650 tablets strip',
 ];
 

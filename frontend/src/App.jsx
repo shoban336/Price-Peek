@@ -14,9 +14,11 @@ const CATEGORIES = [
   { id: 'all', label: 'All Stores' },
   { id: 'quick_commerce', label: 'Quick Commerce (10-min)' },
   { id: 'ecommerce', label: 'E-Commerce' },
-  { id: 'grocery', label: 'Groceries' },
-  { id: 'electronics', label: 'Electronics' },
+  { id: 'grocery', label: 'Groceries & Essentials' },
+  { id: 'fashion', label: 'Fashion & Apparel' },
+  { id: 'electronics', label: 'Electronics & Accessories' },
   { id: 'pharmacy', label: 'Pharmacy' },
+  { id: 'beauty', label: 'Beauty & Personal Care' },
 ];
 
 export default function App() {

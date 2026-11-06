@@ -59,27 +59,27 @@ def test_get_platform_by_id():
 def test_register_new_platform():
     """Verify plug-and-play platform registration endpoint."""
     new_platform = {
-        "id": "myntra",
-        "name": "Myntra",
+        "id": "meesho",
+        "name": "Meesho",
         "category": "fashion",
-        "domain": "myntra.com",
+        "domain": "meesho.com",
         "enabled": True,
         "status": "AVAILABLE",
         "requires_pin": True,
         "supported_regions": ["IN"],
-        "logo_url": "https://constant.myntassets.com/web/assets/img/icon.png",
-        "app_scheme": "com.myntra.android",
-        "description": "Fashion & Lifestyle platform"
+        "logo_url": "https://meesho.com/favicon.ico",
+        "app_scheme": "com.meesho.supply",
+        "description": "Value e-commerce platform"
     }
     response = client.post("/api/v1/platforms", json=new_platform)
     assert response.status_code == 201
     created = response.json()
-    assert created["id"] == "myntra"
+    assert created["id"] == "meesho"
 
     # Verify presence in list
-    check = client.get("/api/v1/platforms/myntra")
+    check = client.get("/api/v1/platforms/meesho")
     assert check.status_code == 200
-    assert check.json()["name"] == "Myntra"
+    assert check.json()["name"] == "Meesho"
 
 
 def test_search_endpoint_contract():

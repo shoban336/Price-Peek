@@ -15,6 +15,10 @@ from app.connectors.instamart_connector import InstamartConnector
 from app.connectors.bigbasket_connector import BigBasketConnector
 from app.connectors.croma_connector import CromaConnector
 from app.connectors.tata1mg_connector import Tata1mgConnector
+from app.connectors.jiomart_connector import JioMartConnector
+from app.connectors.myntra_connector import MyntraConnector
+from app.connectors.ajio_connector import AjioConnector
+from app.connectors.nykaa_connector import NykaaConnector
 from app.schemas.platform_schema import PlatformSchema, PlatformStatus, PlatformCategory
 
 
@@ -30,12 +34,16 @@ class PlatformRegistry:
         defaults: List[BaseConnector] = [
             AmazonConnector(),
             FlipkartConnector(),
+            JioMartConnector(),
             ZeptoConnector(),
             BlinkitConnector(),
             InstamartConnector(),
             BigBasketConnector(),
+            MyntraConnector(),
+            AjioConnector(),
             CromaConnector(),
             Tata1mgConnector(),
+            NykaaConnector(),
         ]
         for conn in defaults:
             self._connectors[conn.platform_id] = conn
