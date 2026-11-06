@@ -18,7 +18,7 @@ class JioMartConnector(BaseConnector):
 
     async def search(self, query: str, pin_code: Optional[str] = None) -> List[RawProductListing]:
         encoded = urllib.parse.quote_plus(query)
-        url = f"https://www.jiomart.com/search/{encoded}"
+        url = f"https://www.jiomart.com/search?q={encoded}"
         response = await fetch_page(url)
 
         if not response:

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Sparkles, X, ArrowUpRight, Loader2 } from 'lucide-react';
+import { Search, X, ArrowUpRight, Loader2 } from 'lucide-react';
 import { fetchAutocompleteSuggestions } from '../services/api';
 
 const POPULAR_SUGGESTIONS = [
@@ -171,9 +171,6 @@ export default function SearchBar({ onSearch, loading }) {
   return (
     <section className="hero-section">
       <div className="hero-inner">
-        <div className="hero-badge">
-          <Sparkles size={14} /> Buyhatke Cross-Store Comparison & Link Resolver
-        </div>
         <h1 className="hero-title">
           Compare Prices Across <span>All Active Stores</span>
         </h1>
