@@ -37,4 +37,5 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     """Create all database tables defined in metadata."""
+    import app.models  # Ensure all model declarations are registered with Base.metadata
     Base.metadata.create_all(bind=engine)

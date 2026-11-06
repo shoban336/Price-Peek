@@ -152,6 +152,17 @@ async def execute_universal_search(
         total_platforms_queried=total_platforms_queried
     )
 
+    # 6. Persist results and price history to Database (SQLite / MySQL)
+    if sorted_listings:
+        try:
+            from app.config.database import SessionLocal
+            from app.services.db_service import persist_search_listings
+            with SessionLocal() as session:
+                persist_search_listings(session, parsed, sorted_listings)
+        except Exception as e:
+            # DB logging error does not break search response
+            pass
+
     return SearchResponse(
         query=query,
         delivery_pin=pin_code,

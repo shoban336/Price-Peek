@@ -14,6 +14,12 @@ from app.api.v1.router import api_v1_router
 
 settings = get_settings()
 
+# Initialize database tables on application module load and in lifespan
+try:
+    init_db()
+except Exception as e:
+    pass
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
