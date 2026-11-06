@@ -40,18 +40,18 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
         elif platform_id == "blinkit":
             return (
-                "https://blinkit.com/prn/gold-winner-refined-sunflower-oil-pouch/prid/392019",
-                "grofers://product/392019"
+                "https://blinkit.com/prn/gold-winner-sunflower-oil/prid/66193",
+                "grofers://product/66193"
             )
         elif platform_id == "amazon":
             return (
-                "https://www.amazon.in/dp/B07575H23T",
-                "amazon://in/dp/B07575H23T"
+                "https://www.amazon.in/dp/B0FNX5ZG78",
+                "amazon://in/dp/B0FNX5ZG78"
             )
         elif platform_id == "flipkart":
             return (
-                "https://www.flipkart.com/gold-winner-refined-sunflower-oil-pouch/p/itm53bf2749a998b",
-                "flipkart://dl/product/itm53bf2749a998b"
+                "https://www.flipkart.com/gold-winner-refined-sunflower-oil/p/itmcf3c7d82f3a97?pid=EDOETZNKSHJPHKGK",
+                "flipkart://dl/product/itmcf3c7d82f3a97"
             )
         elif platform_id == "bigbasket":
             return (
