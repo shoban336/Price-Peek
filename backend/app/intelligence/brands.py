@@ -61,6 +61,15 @@ CATEGORY_KEYWORDS = {
 }
 
 
+BRAND_CORRECTIONS = {
+    "detol": "Dettol",
+    "iphne": "Apple",
+    "nik": "Nike",
+    "adiddas": "Adidas",
+    "samsng": "Samsung"
+}
+
+
 def detect_brand(query: str) -> Tuple[Optional[str], str]:
     """Identify if a brand name appears at the start or within the query.
     
@@ -69,6 +78,15 @@ def detect_brand(query: str) -> Tuple[Optional[str], str]:
     """
     normalized_q = query.strip()
     
+    # Check common spelling typos and map to canonical brand
+    for typo, canonical in BRAND_CORRECTIONS.items():
+        pattern = rf'\b{re.escape(typo)}\b'
+        match = re.search(pattern, normalized_q, re.IGNORECASE)
+        if match:
+            cleaned_query = (normalized_q[:match.start()] + " " + normalized_q[match.end():]).strip()
+            cleaned_query = re.sub(r'\s+', ' ', cleaned_query)
+            return canonical, cleaned_query
+
     # Check known multi-word and single-word brands (case-insensitive)
     for brand in KNOWN_BRANDS:
         pattern = rf'\b{re.escape(brand)}\b'

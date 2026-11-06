@@ -30,7 +30,9 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
     Never produces broken 404 links or misrouted products.
     """
     lower_query = parsed.raw_query.lower().strip()
-    encoded_search = urllib.parse.quote_plus(parsed.raw_query.strip())
+    search_term = title if title else parsed.raw_query.strip()
+    encoded_search = urllib.parse.quote_plus(search_term)
+    encoded_path = urllib.parse.quote(search_term)
     
     # 1. Exact verified PDP URLs for popular benchmark items
     if "gold winner" in lower_query:
@@ -89,7 +91,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
     elif platform_id == "flipkart":
         return f"https://www.flipkart.com/search?q={encoded_search}", f"flipkart://search?q={encoded_search}"
     elif platform_id == "jiomart":
-        return f"https://www.jiomart.com/search/{encoded_search}", f"jiomart://search/{encoded_search}"
+        return f"https://www.jiomart.com/search/{encoded_path}", f"jiomart://search/{encoded_path}"
     elif platform_id == "zepto":
         return f"https://www.zeptonow.com/search?q={encoded_search}", f"zepto://search?q={encoded_search}"
     elif platform_id == "blinkit":
@@ -97,7 +99,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
     elif platform_id == "bigbasket":
         return f"https://www.bigbasket.com/ps/?q={encoded_search}", f"bigbasket://search?q={encoded_search}"
     elif platform_id == "myntra":
-        return f"https://www.myntra.com/{encoded_search}", f"myntra://search/{encoded_search}"
+        return f"https://www.myntra.com/{encoded_path}", f"myntra://search/{encoded_path}"
     elif platform_id == "ajio":
         return f"https://www.ajio.com/search/?text={encoded_search}", f"ajio://search/?text={encoded_search}"
     elif platform_id == "croma":
