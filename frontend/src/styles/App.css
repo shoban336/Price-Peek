@@ -575,6 +575,43 @@
   background: var(--primary-hover);
 }
 
+.btn-view-deal.btn-out-of-stock {
+  background: #94a3b8;
+  color: #ffffff;
+}
+
+.btn-view-deal.btn-out-of-stock:hover {
+  background: #64748b;
+}
+
+.product-card.card-out-of-stock {
+  border-color: #fecaca;
+  background: #fffcfc;
+}
+
+.stock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stock-pill.out-of-stock {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.stock-pill.in-stock {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
 .btn-deep-link {
   display: inline-flex;
   align-items: center;

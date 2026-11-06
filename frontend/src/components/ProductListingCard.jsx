@@ -16,21 +16,29 @@ export default function ProductListingCard({ listing, isCheapest }) {
     normalized_unit,
     variant,
     is_live,
+    in_stock,
   } = listing;
 
+  const showCheapestBadge = isCheapest && in_stock !== false;
+
   return (
-    <div className={`product-card ${isCheapest ? 'is-cheapest' : ''}`}>
-      {isCheapest && <div className="card-top-badge">Lowest Price</div>}
+    <div className={`product-card ${showCheapestBadge ? 'is-cheapest' : ''} ${in_stock === false ? 'card-out-of-stock' : ''}`}>
+      {showCheapestBadge && <div className="card-top-badge">Lowest Price</div>}
 
       <div className="card-platform-header">
         <div className="platform-brand-info">
           <span className="platform-name">{platform_name}</span>
         </div>
-        {delivery_time_estimate && (
-          <span className="delivery-badge">
-            <Clock size={12} /> {delivery_time_estimate}
-          </span>
-        )}
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          {in_stock === false ? (
+            <span className="stock-pill out-of-stock">Out of Stock</span>
+          ) : delivery_time_estimate ? (
+            <span className="delivery-badge">
+              <Clock size={12} /> {delivery_time_estimate}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <h3 className="card-product-title" title={title}>
@@ -62,27 +70,42 @@ export default function ProductListingCard({ listing, isCheapest }) {
       </div>
 
       <div className="card-price-row">
-        <span className="selling-price">₹{price.toLocaleString('en-IN')}</span>
+        <span className="selling-price" style={{ color: in_stock === false ? '#64748b' : '#0f172a' }}>
+          ₹{price.toLocaleString('en-IN')}
+        </span>
         {original_price && original_price > price && (
           <span className="original-price">₹{original_price.toLocaleString('en-IN')}</span>
         )}
-        {discount_percent && discount_percent > 0 && (
+        {discount_percent && discount_percent > 0 && in_stock !== false && (
           <span className="discount-chip">-{Math.round(discount_percent)}%</span>
         )}
       </div>
 
       <div className="card-actions">
-        <a
-          href={product_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-view-deal"
-          title={`Open exact product page on ${platform_name} to Add to Cart`}
-        >
-          <ShoppingCart size={15} />
-          <span>Add to Cart / View</span>
-          <ExternalLink size={13} style={{ opacity: 0.8 }} />
-        </a>
+        {in_stock === false ? (
+          <a
+            href={product_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-view-deal btn-out-of-stock"
+            title={`Out of stock on ${platform_name}. Click to check store availability`}
+          >
+            <span>Out of Stock</span>
+            <ExternalLink size={13} style={{ opacity: 0.8 }} />
+          </a>
+        ) : (
+          <a
+            href={product_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-view-deal"
+            title={`Open exact product page on ${platform_name} to Add to Cart`}
+          >
+            <ShoppingCart size={15} />
+            <span>Add to Cart / View</span>
+            <ExternalLink size={13} style={{ opacity: 0.8 }} />
+          </a>
+        )}
 
         {deep_link_url && (
           <a

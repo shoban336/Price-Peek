@@ -66,21 +66,34 @@ export default function PriceComparisonTable({ listings, cheapestId }) {
                     '-'
                   )}
                 </td>
-                <td style={{ color: '#475569', fontSize: '0.85rem' }}>
-                  {item.delivery_time_estimate || 'Standard'}
+                <td style={{ color: item.in_stock === false ? '#dc2626' : '#475569', fontSize: '0.85rem', fontWeight: item.in_stock === false ? 700 : 500 }}>
+                  {item.in_stock === false ? 'Out of Stock' : (item.delivery_time_estimate || 'Standard')}
                 </td>
                 <td>
-                  <a
-                    href={item.product_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-view-deal"
-                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'inline-flex' }}
-                    title={`Open exact product page on ${item.platform_name} to Add to Cart`}
-                  >
-                    <span>View & Buy</span>
-                    <ExternalLink size={13} />
-                  </a>
+                  {item.in_stock === false ? (
+                    <a
+                      href={item.product_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-view-deal btn-out-of-stock"
+                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'inline-flex' }}
+                    >
+                      <span>Out of Stock</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  ) : (
+                    <a
+                      href={item.product_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-view-deal"
+                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'inline-flex' }}
+                      title={`Open exact product page on ${item.platform_name} to Add to Cart`}
+                    >
+                      <span>View & Buy</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  )}
                 </td>
               </tr>
             );

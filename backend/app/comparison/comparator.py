@@ -52,27 +52,30 @@ def compare_and_rank_prices(
         return [], empty_summary
 
     # NumPy / Pandas statistics
-    price_series = df["price"].to_numpy()
+    in_stock_df = df[df["in_stock"] == True]
+    calc_df = in_stock_df if not in_stock_df.empty else df
+
+    price_series = calc_df["price"].to_numpy()
     lowest_price = float(np.min(price_series))
     highest_price = float(np.max(price_series))
     average_price = round(float(np.mean(price_series)), 2)
     max_savings = round(highest_price - lowest_price, 2)
 
-    # Locate the cheapest listing
-    cheapest_idx = df["price"].idxmin()
-    cheapest_row = df.loc[cheapest_idx]
+    # Locate the cheapest in-stock listing
+    cheapest_idx = calc_df["price"].idxmin()
+    cheapest_row = calc_df.loc[cheapest_idx]
     cheapest_platform_name = str(cheapest_row["platform_name"])
     cheapest_platform_id = str(cheapest_row["platform_id"])
 
-    # Sorting options
+    # Sorting options (in-stock items prioritized first)
     if sort_by == "price_desc":
-        df = df.sort_values(by="price", ascending=False)
+        df = df.sort_values(by=["in_stock", "price"], ascending=[False, False])
     elif sort_by == "discount_desc":
-        df = df.sort_values(by=["discount_percent", "price"], ascending=[False, True], na_position="last")
+        df = df.sort_values(by=["in_stock", "discount_percent", "price"], ascending=[False, False, True], na_position="last")
     elif sort_by == "rating_desc":
-        df = df.sort_values(by=["rating", "price"], ascending=[False, True], na_position="last")
+        df = df.sort_values(by=["in_stock", "rating", "price"], ascending=[False, False, True], na_position="last")
     else:  # Default price_asc
-        df = df.sort_values(by="price", ascending=True)
+        df = df.sort_values(by=["in_stock", "price"], ascending=[False, True])
 
     sorted_listings = [ProductListing(**row) for row in df.to_dict(orient="records")]
 
