@@ -77,7 +77,19 @@ def compare_and_rank_prices(
     else:  # Default price_asc
         df = df.sort_values(by=["in_stock", "price"], ascending=[False, True])
 
-    sorted_listings = [ProductListing(**row) for row in df.to_dict(orient="records")]
+    # Clean NaN values that Pandas introduces for Optional fields
+    records = df.to_dict(orient="records")
+    cleaned_records = []
+    for r in records:
+        cleaned_row = {}
+        for k, v in r.items():
+            if pd.isna(v):
+                cleaned_row[k] = None
+            else:
+                cleaned_row[k] = v
+        cleaned_records.append(cleaned_row)
+
+    sorted_listings = [ProductListing(**row) for row in cleaned_records]
 
     summary = ComparisonSummary(
         cheapest_platform=cheapest_platform_name,
