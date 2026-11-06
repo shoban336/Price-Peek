@@ -1,44 +1,88 @@
-"""Universal query parsing and attribute extraction."""
+"""Universal query parsing and product attribute extractor.
+Parses any unstructured product search into structured components:
+- Brand
+- Product Name / Title
+- Category
+- Model
+- Normalized Quantity and Unit
+- Specific Variant
+"""
 import re
-from typing import Optional, Tuple
+from typing import Optional
 from app.schemas.search_schema import ParsedQuery
+from app.intelligence.units import parse_and_normalize_unit
+from app.intelligence.variants import extract_variants, format_variant_string
+from app.intelligence.brands import detect_brand, classify_category
 
-# Standard volume and weight unit normalization patterns
-UNIT_PATTERNS = [
-    (r'(?i)\b(\d+(?:\.\d+)?)\s*(?:litres?|liter|ltr|l)\b', 'L', 1.0),
-    (r'(?i)\b(\d+(?:\.\d+)?)\s*(?:millilitres?|milliliter|ml)\b', 'L', 0.001),
-    (r'(?i)\b(\d+(?:\.\d+)?)\s*(?:kilograms?|kilogram|kg|kgs)\b', 'kg', 1.0),
-    (r'(?i)\b(\d+(?:\.\d+)?)\s*(?:grams?|gram|gm|gms|g)\b', 'kg', 0.001),
-    (r'(?i)\b(\d+(?:\.\d+)?)\s*(?:gb|gigabytes?)\b', 'GB', 1.0),
-    (r'(?i)\b(\d+(?:\.\d+)?)\s*(?:tb|terabytes?)\b', 'GB', 1024.0),
-    (r'(?i)\b(\d+(?:\.\d+)?)\s*(?:pack|pcs|pieces?|units?)\b', 'pack', 1.0),
+MODEL_PATTERNS = [
+    # Specific series names first
+    (r'\b(air\s*max(?:\s*\d+)?)\b', 1),
+    (r'\b(pavilion|thinkpad|macbook\s*(?:air|pro)|inspiron|legion|yoga)\b', 1),
+    (r'\b(?:galaxy\s*)([sza]\d{2}(?:\s*(?:ultra|plus|fe))?)\b', 1),
+    # Explicit iPhone model numbering (requires "iphone" before the digit)
+    (r'\b(?:iphone\s+)(\d{1,2}(?:\s*(?:pro\s*max|pro|plus|mini))?)\b', 1),
 ]
 
 
-def extract_unit_and_quantity(query: str) -> Tuple[Optional[float], Optional[str]]:
-    """Extract and normalize quantity and standard measurement unit."""
-    for pattern, target_unit, multiplier in UNIT_PATTERNS:
-        match = re.search(pattern, query)
+def extract_model(text: str) -> Optional[str]:
+    """Extract model identifier if present in query."""
+    for pattern, group_idx in MODEL_PATTERNS:
+        match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            raw_val = float(match.group(1))
-            normalized_val = round(raw_val * multiplier, 3)
-            return normalized_val, target_unit
-    return None, None
+            return match.group(group_idx).strip().title()
+    return None
 
 
-def parse_query(query: str) -> ParsedQuery:
-    """Parse unstructured query string into structured product attributes."""
-    cleaned = query.strip()
-    qty, unit = extract_unit_and_quantity(cleaned)
-    
-    # Generic brand/category extraction logic (further enhanced in Phase 3)
+def parse_query(raw_query: str) -> ParsedQuery:
+    """Universal parser that transforms any free-text query into structured product attributes."""
+    cleaned = raw_query.strip()
+    if not cleaned:
+        return ParsedQuery(
+            raw_query="",
+            brand=None,
+            product_name="",
+            category=None,
+            model=None,
+            normalized_quantity=None,
+            normalized_unit=None,
+            variant=None,
+        )
+
+    # 1. Extract Unit and Quantity (e.g., 1L, 1000ml, 500g, 256GB)
+    unit_result = parse_and_normalize_unit(cleaned)
+    normalized_qty = unit_result.normalized_value if unit_result else None
+    normalized_unit = unit_result.canonical_unit if unit_result else None
+
+    # 2. Extract Variants (Color, RAM, Apparel/Shoe Size, Formulation)
+    variants = extract_variants(cleaned)
+    variant_str = format_variant_string(variants)
+
+    # 3. Detect Brand and strip brand from remaining tokens
+    brand, remaining_query = detect_brand(cleaned)
+
+    # 4. Detect Model
+    model = extract_model(cleaned)
+
+    # 5. Classify Category
+    category = classify_category(cleaned)
+
+    # 6. Refine product name by stripping extracted unit text to prevent redundant tokens
+    clean_name = remaining_query
+    if unit_result:
+        clean_name = re.sub(re.escape(unit_result.original_text), '', clean_name, flags=re.IGNORECASE)
+
+    # Clean whitespace and trailing punctuation
+    clean_name = re.sub(r'[\s\-_]+', ' ', clean_name).strip()
+    if not clean_name:
+        clean_name = cleaned
+
     return ParsedQuery(
         raw_query=cleaned,
-        brand=None,
-        product_name=cleaned,
-        category=None,
-        model=None,
-        normalized_quantity=qty,
-        normalized_unit=unit,
-        variant=None
+        brand=brand,
+        product_name=clean_name,
+        category=category.value if category else None,
+        model=model,
+        normalized_quantity=normalized_qty,
+        normalized_unit=normalized_unit,
+        variant=variant_str,
     )
