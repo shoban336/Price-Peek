@@ -10,6 +10,7 @@ from app.models.product_model import Product
 from app.models.listing_model import ProductListingRecord
 from app.schemas.search_schema import AutocompleteItem
 from app.intelligence.parser import parse_query
+from app.intelligence.url_resolver import parse_product_url
 
 
 # Distinct, authentic product thumbnails across all major quick-commerce categories
@@ -608,13 +609,30 @@ def get_autocomplete_suggestions(query: str, limit: int = 8) -> List[Autocomplet
     """Return top matched suggestions with thumbnails for live search autocomplete.
     
     Searches:
-    1. Universal Quick-Commerce & E-Commerce Catalog Index (High-fidelity curated items)
-    2. SQLite Database registered Products & Listings (dynamically updated with resolved images)
-    3. Dynamic intelligent generator for unlisted / arbitrary product queries
+    1. Buyhatke Direct URL Resolver (Instant product link detection)
+    2. Universal Quick-Commerce & E-Commerce Catalog Index (High-fidelity curated items)
+    3. SQLite Database registered Products & Listings (dynamically updated with resolved images)
+    4. Dynamic intelligent generator for unlisted / arbitrary product queries
     """
     clean_q = query.strip()
     if not clean_q or len(clean_q) < 1:
         return []
+
+    # 0. Buyhatke URL Resolver Check
+    url_info = parse_product_url(clean_q)
+    if url_info and url_info.is_url:
+        img = resolve_product_thumbnail(url_info.clean_query or "", url_info.platform_id)
+        return [
+            AutocompleteItem(
+                id="url_resolver_direct",
+                name=url_info.clean_query or clean_q,
+                imageUrl=img,
+                image_url=img,
+                category=f"{url_info.platform_name} Link",
+                pack_size="Direct Link",
+                subtitle=f"🔗 Paste detected from {url_info.platform_name} ({url_info.product_id or 'Product'}) — Click to compare across all stores"
+            )
+        ]
 
     lower_q = clean_q.lower()
     results: List[AutocompleteItem] = []

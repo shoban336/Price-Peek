@@ -1,6 +1,7 @@
 """Universal Product Search and Price Comparison Endpoint."""
 from typing import Optional, List
 from fastapi import APIRouter, Query, HTTPException, status
+from pydantic import BaseModel
 from app.config.settings import get_settings
 from app.schemas.search_schema import (
     SearchRequest,
@@ -9,9 +10,54 @@ from app.schemas.search_schema import (
 )
 from app.services.search_service import execute_universal_search
 from app.services.autocomplete_service import get_autocomplete_suggestions
+from app.intelligence.url_resolver import parse_product_url
 
 router = APIRouter(prefix="/search", tags=["Universal Search"])
 settings = get_settings()
+
+
+class ResolveURLRequest(BaseModel):
+    url: str
+    pin_code: Optional[str] = None
+
+
+class ResolveURLResponse(BaseModel):
+    is_url: bool
+    platform_id: Optional[str] = None
+    platform_name: Optional[str] = None
+    product_id: Optional[str] = None
+    clean_query: Optional[str] = None
+    search_results: SearchResponse
+
+
+@router.post("/resolve-url", response_model=ResolveURLResponse)
+async def resolve_product_link(payload: ResolveURLRequest) -> ResolveURLResponse:
+    """Buyhatke Direct Product Link Resolver Endpoint.
+    
+    Accepts direct product URL from Amazon, Flipkart, Myntra, Blinkit, etc.,
+    extracts product ASIN/ID and title, and performs full cross-platform price comparison.
+    """
+    resolved = parse_product_url(payload.url)
+    if not resolved or not resolved.is_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or unsupported store URL. Please provide a valid product link from Amazon, Flipkart, Blinkit, Myntra, etc."
+        )
+
+    effective_pin = payload.pin_code or settings.DEFAULT_PIN_CODE
+    search_resp = await execute_universal_search(
+        query=resolved.clean_query or payload.url,
+        pin_code=effective_pin
+    )
+
+    return ResolveURLResponse(
+        is_url=True,
+        platform_id=resolved.platform_id,
+        platform_name=resolved.platform_name,
+        product_id=resolved.product_id,
+        clean_query=resolved.clean_query,
+        search_results=search_resp
+    )
 
 
 @router.get("/autocomplete", response_model=List[AutocompleteItem])

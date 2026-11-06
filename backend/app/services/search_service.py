@@ -18,6 +18,7 @@ from app.matching.matcher import filter_and_normalize_listings
 from app.comparison.comparator import compare_and_rank_prices
 from app.connectors.base_connector import RawProductListing
 from app.services.autocomplete_service import resolve_product_thumbnail
+from app.intelligence.url_resolver import parse_product_url
 
 
 def _slugify(text: str) -> str:
@@ -287,9 +288,18 @@ async def execute_universal_search(
     sort_by: str = "price_asc",
     platform_ids: Optional[List[str]] = None
 ) -> SearchResponse:
-    """End-to-end universal search pipeline."""
+    """End-to-end universal search pipeline.
+    
+    Includes Buyhatke-style Direct Product URL Resolution:
+    If a direct store link (Amazon, Flipkart, Myntra, Blinkit, etc.) is pasted,
+    it automatically resolves the platform and product name, triggering cross-store comparison.
+    """
+    # 0. Buyhatke Direct Product Link Resolver
+    resolved_info = parse_product_url(query)
+    effective_query = resolved_info.clean_query if (resolved_info and resolved_info.clean_query) else query
+
     # 1. Parse Query into structured attributes
-    parsed = parse_query(query)
+    parsed = parse_query(effective_query)
 
     # 2. Query dynamic platform registry
     active_connectors = registry.list_connectors(enabled_only=True)
@@ -298,7 +308,7 @@ async def execute_universal_search(
     total_platforms_queried = len(active_connectors)
 
     raw_listings = await registry.search_all(
-        query=query,
+        query=effective_query,
         pin_code=pin_code,
         platform_ids=platform_ids
     )

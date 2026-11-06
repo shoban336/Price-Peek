@@ -74,3 +74,51 @@ export async function getPriceHistory(productIdentifier, days = 30) {
   if (!response.ok) throw new Error('Failed to load price history');
   return response.json();
 }
+
+/**
+ * Buyhatke Feature: Direct Product URL Resolver
+ */
+export async function resolveProductUrl(url, pinCode = '560001') {
+  const response = await fetch(`${BASE_URL}/search/resolve-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, pin_code: pinCode }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to resolve product link');
+  }
+  return response.json();
+}
+
+/**
+ * Buyhatke Feature: Price Drop Alert API
+ */
+export async function createPriceAlert(alertData) {
+  const response = await fetch(`${BASE_URL}/alerts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(alertData),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to create price alert');
+  }
+  return response.json();
+}
+
+export async function getPriceAlerts(email = null) {
+  const params = new URLSearchParams();
+  if (email) params.append('email', email);
+  const response = await fetch(`${BASE_URL}/alerts?${params.toString()}`);
+  if (!response.ok) throw new Error('Failed to load price alerts');
+  return response.json();
+}
+
+export async function deletePriceAlert(alertId) {
+  const response = await fetch(`${BASE_URL}/alerts/${alertId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete price alert');
+  return true;
+}

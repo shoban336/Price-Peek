@@ -172,14 +172,14 @@ export default function SearchBar({ onSearch, loading }) {
     <section className="hero-section">
       <div className="hero-inner">
         <div className="hero-badge">
-          <Sparkles size={14} /> Universal Cross-Store Comparison
+          <Sparkles size={14} /> Buyhatke Cross-Store Comparison & Link Resolver
         </div>
         <h1 className="hero-title">
           Compare Prices Across <span>All Active Stores</span>
         </h1>
         <p className="hero-subtitle">
-          Search groceries, quick commerce, tech, fashion, and medicines.
-          Instant PIN-filtered prices with direct product links.
+          Paste any direct product link from Amazon, Flipkart, Blinkit, or search by name.
+          Real-time price history graphs, drop alerts, and instant store checkout.
         </p>
 
         <div className="search-box-container" ref={containerRef}>
@@ -195,7 +195,7 @@ export default function SearchBar({ onSearch, loading }) {
                 if (suggestions.length > 0) setShowDropdown(true);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Search any product (e.g. Milk, Tomato, Lays, Gold Winner Oil...)"
+              placeholder="Search product or paste link (e.g. amazon.in/dp/..., Milk, Gold Winner Oil...)"
               autoComplete="off"
             />
 

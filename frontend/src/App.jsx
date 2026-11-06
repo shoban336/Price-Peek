@@ -5,6 +5,7 @@ import ComparisonSummaryBanner from './components/ComparisonSummaryBanner';
 import ProductListingCard from './components/ProductListingCard';
 import PriceComparisonTable from './components/PriceComparisonTable';
 import PriceHistoryModal from './components/PriceHistoryModal';
+import PriceDropAlertModal from './components/PriceDropAlertModal';
 import AdminRegistryModal from './components/AdminRegistryModal';
 import { searchProducts } from './services/api';
 import { LayoutGrid, Table, ArrowUpDown, Filter, AlertCircle, ShoppingBag } from 'lucide-react';
@@ -34,6 +35,16 @@ export default function App() {
   // Modals
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertTargetProduct, setAlertTargetProduct] = useState({ title: '', price: 0 });
+
+  const handleOpenAlert = (title = null, price = null) => {
+    setAlertTargetProduct({
+      title: title || searchResults?.parsed_query?.product_name || currentQuery,
+      price: price || searchResults?.summary?.lowest_price || 0,
+    });
+    setShowAlertModal(true);
+  };
 
   // Execute initial search on first render to show immediate value
   useEffect(() => {
@@ -120,6 +131,7 @@ export default function App() {
               summary={searchResults.summary}
               parsedQuery={searchResults.parsed_query}
               onOpenHistory={() => setShowHistoryModal(true)}
+              onOpenAlert={() => handleOpenAlert()}
             />
 
             {/* Category Filter Pills & Controls */}
@@ -199,6 +211,7 @@ export default function App() {
               <PriceComparisonTable
                 listings={displayedListings}
                 cheapestId={cheapestId}
+                onOpenAlert={handleOpenAlert}
               />
             )}
           </>
@@ -211,6 +224,16 @@ export default function App() {
           productIdentifier={searchResults?.parsed_query?.raw_query || currentQuery}
           productName={searchResults?.parsed_query?.product_name || currentQuery}
           onClose={() => setShowHistoryModal(false)}
+          onOpenAlert={handleOpenAlert}
+        />
+      )}
+
+      {/* Buyhatke Price Drop Alert Modal */}
+      {showAlertModal && (
+        <PriceDropAlertModal
+          productTitle={alertTargetProduct.title}
+          currentPrice={alertTargetProduct.price}
+          onClose={() => setShowAlertModal(false)}
         />
       )}
 
