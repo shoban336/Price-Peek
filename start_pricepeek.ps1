@@ -2,11 +2,10 @@ Write-Host "====================================================================
 Write-Host "Starting PricePeek - Universal Product Price Comparison Platform" -ForegroundColor Green
 Write-Host "======================================================================" -ForegroundColor Cyan
 
-# 1. Start Backend in separate process
+# 1. Start Backend in separate process (direct python.exe invocation bypasses execution policy restrictions)
 $backendScript = @"
 cd '$PSScriptRoot\backend'
-& '.\venv\Scripts\Activate.ps1'
-python -m uvicorn app.main:app --reload --port 8000
+& '.\venv\Scripts\python.exe' -m uvicorn app.main:app --reload --port 8000
 "@
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendScript
 
