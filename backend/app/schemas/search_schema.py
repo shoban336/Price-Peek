@@ -76,6 +76,7 @@ class AutocompleteItem(BaseModel):
     id: str
     name: str
     imageUrl: Optional[str] = None
+    image_url: Optional[str] = None
     category: Optional[str] = None
     pack_size: Optional[str] = None
     subtitle: Optional[str] = None

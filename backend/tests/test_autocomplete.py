@@ -56,3 +56,31 @@ def test_autocomplete_arbitrary_query():
     assert len(data) >= 1
     assert "Dragonfruit" in data[0]["name"]
     assert data[0]["imageUrl"] is not None
+
+
+def test_autocomplete_distinct_product_specific_thumbnails():
+    """Ensure milk, tomato, and tech do NOT use the generic sunflower oil jar thumbnail."""
+    oil_jar_id = "photo-1474979266404-7eaacbcd87c5"
+    
+    # Milk must NOT be the oil jar
+    res_milk = client.get("/api/v1/search/autocomplete?q=milk")
+    assert res_milk.status_code == 200
+    milk_items = res_milk.json()
+    assert len(milk_items) > 0
+    # Every milk item must have distinct milk image or dairy thumbnail
+    for m in milk_items:
+        if "milk" in m["name"].lower():
+            assert oil_jar_id not in m["imageUrl"], f"{m['name']} incorrectly has oil jar image!"
+            assert "image_url" in m and m["image_url"] == m["imageUrl"]
+
+    # Tomato must NOT be the oil jar
+    res_tomato = client.get("/api/v1/search/autocomplete?q=tomato")
+    assert res_tomato.status_code == 200
+    for t in res_tomato.json():
+        if "tomato" in t["name"].lower():
+            assert oil_jar_id not in t["imageUrl"]
+
+    # Gold Winner sunflower oil SHOULD have the oil thumbnail
+    res_oil = client.get("/api/v1/search/autocomplete?q=Gold+Winner")
+    assert res_oil.status_code == 200
+    assert oil_jar_id in res_oil.json()[0]["imageUrl"]

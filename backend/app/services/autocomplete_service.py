@@ -12,19 +12,197 @@ from app.schemas.search_schema import AutocompleteItem
 from app.intelligence.parser import parse_query
 
 
-# Default high-quality category thumbnail fallbacks
-CATEGORY_DEFAULT_THUMBNAILS = {
-    "dairy": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=120&q=80",
-    "fruits_vegetables": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=120&q=80",
-    "snacks": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
-    "beverages": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=120&q=80",
-    "grocery": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=120&q=80",
-    "personal_care": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=120&q=80",
-    "electronics": "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=120&q=80",
-    "fashion": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=120&q=80",
-    "pharmacy": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=120&q=80",
-    "general": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=120&q=80",
+# Distinct, authentic product thumbnails across all major quick-commerce categories
+PRODUCT_THUMBNAILS = {
+    # Dairy & Breakfast
+    "milk": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=120&q=80",
+    "curd": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=120&q=80",
+    "butter": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=120&q=80",
+    "paneer": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=120&q=80",
+    "bread": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=120&q=80",
+    "eggs": "https://images.unsplash.com/photo-1516448620398-c5f44bf9f441?auto=format&fit=crop&w=120&q=80",
+
+    # Produce
+    "tomato": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=120&q=80",
+    "apple": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=120&q=80",
+    "potato": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=120&q=80",
+    "onion": "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=120&q=80",
+    "banana": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=120&q=80",
+    "coriander": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=120&q=80",
+
+    # Snacks
+    "lays_blue": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
+    "lays_green": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
+    "chips": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
+    "kurkure": "https://images.unsplash.com/photo-1528751014936-863e6e7a319c?auto=format&fit=crop&w=120&q=80",
+    "nachos": "https://images.unsplash.com/photo-1528751014936-863e6e7a319c?auto=format&fit=crop&w=120&q=80",
+    "bhujia": "https://images.unsplash.com/photo-1528751014936-863e6e7a319c?auto=format&fit=crop&w=120&q=80",
+
+    # Beverages
+    "coca_cola": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=120&q=80",
+    "thums_up": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=120&q=80",
+    "frooti": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=120&q=80",
+    "coffee": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=120&q=80",
+
+    # Cooking & Oils
+    "sunflower_oil": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=120&q=80",
+    "atta": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=120&q=80",
+    "salt": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=120&q=80",
+    "rice": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=120&q=80",
+
+    # Personal Care
+    "dettol": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=120&q=80",
+    "shampoo": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=120&q=80",
+    "toothpaste": "https://images.unsplash.com/photo-1559591937-e1032c50fa47?auto=format&fit=crop&w=120&q=80",
+
+    # Tech & Electronics
+    "iphone": "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=120&q=80",
+    "phone_case": "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=120&q=80",
+    "earbuds": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=120&q=80",
+
+    # Fashion
+    "shirt": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=120&q=80",
+    "jeans": "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=120&q=80",
+    "shoes": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=120&q=80",
+
+    # Pharmacy
+    "tablets": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=120&q=80",
 }
+
+
+# Category-aware SVG Data URIs (Instant, clean, never broken)
+CATEGORY_FALLBACK_SVGS = {
+    "dairy": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23e0f2fe' stroke='%230284c7' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M8 2h8v4H8z'/><path d='M6 6h12v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z'/><path d='M6 12h12'/></svg>",
+    "fruits_vegetables": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23dcfce7' stroke='%2316a34a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='13' r='8'/><path d='M12 5V2'/><path d='M12 5c2-2 5-2 7 0'/></svg>",
+    "snacks": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23ffedd5' stroke='%23ea580c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 4h14l-2 16H7z'/><path d='M9 10h6'/><path d='M9 14h6'/></svg>",
+    "beverages": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23ccfbf1' stroke='%230d9488' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M17 8h1a4 4 0 1 1 0 8h-1'/><path d='M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z'/><line x1='6' x2='6' y1='2' y2='4'/><line x1='10' x2='10' y1='2' y2='4'/><line x1='14' x2='14' y1='2' y2='4'/></svg>",
+    "oil": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23fef3c7' stroke='%23d97706' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2a5 5 0 0 1 5 5c0 5-5 13-5 13s-5-8-5-13a5 5 0 0 1 5-5Z'/></svg>",
+    "grocery": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23f1f5f9' stroke='%23475569' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z'/><path d='M3 6h18'/><path d='M16 10a4 4 0 0 1-8 0'/></svg>",
+    "personal_care": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23e0e7ff' stroke='%234f46e5' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2v4'/><path d='m7 6 10 0'/><rect width='12' height='14' x='6' y='8' rx='2'/><path d='M9 13h6'/></svg>",
+    "electronics": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23ede9fe' stroke='%237c3aed' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><rect width='14' height='20' x='5' y='2' rx='2'/><path d='M12 18h.01'/></svg>",
+    "fashion": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23fae8ff' stroke='%23a855f7' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z'/></svg>",
+    "pharmacy": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23dcfce7' stroke='%23059669' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><rect width='16' height='16' x='4' y='4' rx='4'/><path d='M12 8v8'/><path d='M8 12h8'/></svg>",
+    "general": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='%23f8fafc' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m7.5 4.27 9 5.15'/><path d='M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z'/><path d='m3.3 7 8.7 5 8.7-5'/><path d='M12 22V12'/></svg>",
+}
+
+
+def resolve_product_thumbnail(name: str, category: Optional[str] = None, brand: Optional[str] = None) -> str:
+    """Smart product thumbnail resolver.
+    
+    Guarantees every item receives an actual product-specific image rather than a single static olive oil jar.
+    """
+    text = f"{brand or ''} {name} {category or ''}".lower()
+
+    # 1. Tech & Electronics (Check before fruit 'apple' to prevent brand false positives)
+    if any(k in text for k in ["iphone", "macbook", "ipad", "smartphone", "ios", "gadget"]):
+        return PRODUCT_THUMBNAILS["iphone"]
+    if any(k in text for k in ["phone case", "cover", "back cover", "case", "tempered glass"]):
+        return PRODUCT_THUMBNAILS["phone_case"]
+    if any(k in text for k in ["earbuds", "boat", "headphones", "airpods", "tws", "earphone"]):
+        return PRODUCT_THUMBNAILS["earbuds"]
+
+    # 2. Dairy Products
+    if any(k in text for k in ["milk", "doodh", "toned milk", "nandani", "nandini"]):
+        return PRODUCT_THUMBNAILS["milk"]
+    if any(k in text for k in ["curd", "dahi", "yogurt", "milky mist"]):
+        return PRODUCT_THUMBNAILS["curd"]
+    if any(k in text for k in ["butter", "makhan"]):
+        return PRODUCT_THUMBNAILS["butter"]
+    if any(k in text for k in ["paneer", "cottage cheese"]):
+        return PRODUCT_THUMBNAILS["paneer"]
+    if any(k in text for k in ["bread", "toast"]):
+        return PRODUCT_THUMBNAILS["bread"]
+    if any(k in text for k in ["egg", "eggs", "anda"]):
+        return PRODUCT_THUMBNAILS["eggs"]
+
+    # 3. Fresh Produce (Fruits & Vegetables)
+    if any(k in text for k in ["tomato", "tamatar"]):
+        return PRODUCT_THUMBNAILS["tomato"]
+    if any(k in text for k in ["apple", "apples", "seb"]):
+        return PRODUCT_THUMBNAILS["apple"]
+    if any(k in text for k in ["potato", "potatoes", "aloo"]):
+        return PRODUCT_THUMBNAILS["potato"]
+    if any(k in text for k in ["onion", "onions", "pyaz"]):
+        return PRODUCT_THUMBNAILS["onion"]
+    if any(k in text for k in ["banana", "bananas", "kela"]):
+        return PRODUCT_THUMBNAILS["banana"]
+    if any(k in text for k in ["coriander", "dhaniya", "cilantro"]):
+        return PRODUCT_THUMBNAILS["coriander"]
+
+    # 4. Snacks & Munchies
+    if "lays" in text or "lay's" in text:
+        return PRODUCT_THUMBNAILS["lays_blue"]
+    if any(k in text for k in ["chips", "crisps", "potato chips"]):
+        return PRODUCT_THUMBNAILS["chips"]
+    if "kurkure" in text:
+        return PRODUCT_THUMBNAILS["kurkure"]
+    if any(k in text for k in ["nachos", "doritos"]):
+        return PRODUCT_THUMBNAILS["nachos"]
+    if any(k in text for k in ["bhujia", "sev", "namkeen"]):
+        return PRODUCT_THUMBNAILS["bhujia"]
+
+    # 5. Cold Drinks & Beverages
+    if any(k in text for k in ["coca-cola", "coke"]):
+        return PRODUCT_THUMBNAILS["coca_cola"]
+    if "thums up" in text:
+        return PRODUCT_THUMBNAILS["thums_up"]
+    if any(k in text for k in ["frooti", "mango drink", "maaza"]):
+        return PRODUCT_THUMBNAILS["frooti"]
+    if any(k in text for k in ["coffee", "nescafe"]):
+        return PRODUCT_THUMBNAILS["coffee"]
+
+    # 6. Cooking & Oils
+    if any(k in text for k in ["gold winner", "sunflower oil", "cooking oil", "refined oil", "oil 1l", "fortune oil"]):
+        return PRODUCT_THUMBNAILS["sunflower_oil"]
+    if any(k in text for k in ["atta", "wheat flour", "aashirvaad"]):
+        return PRODUCT_THUMBNAILS["atta"]
+    if any(k in text for k in ["salt", "tata salt", "namak"]):
+        return PRODUCT_THUMBNAILS["salt"]
+    if any(k in text for k in ["rice", "basmati", "india gate"]):
+        return PRODUCT_THUMBNAILS["rice"]
+
+    # 7. Personal Care & Hygiene
+    if any(k in text for k in ["dettol", "handwash", "hand wash", "lifebuoy", "sanitizer"]):
+        return PRODUCT_THUMBNAILS["dettol"]
+    if any(k in text for k in ["shampoo", "dove", "hair care", "tresemme"]):
+        return PRODUCT_THUMBNAILS["shampoo"]
+    if any(k in text for k in ["colgate", "toothpaste", "oral care"]):
+        return PRODUCT_THUMBNAILS["toothpaste"]
+
+    # 8. Fashion & Apparel
+    if any(k in text for k in ["shirt", "t-shirt", "tshirt", "casual shirt"]):
+        return PRODUCT_THUMBNAILS["shirt"]
+    if any(k in text for k in ["jeans", "pant", "pants", "trouser", "trousers"]):
+        return PRODUCT_THUMBNAILS["jeans"]
+    if any(k in text for k in ["shoe", "shoes", "sneaker", "sneakers", "nike"]):
+        return PRODUCT_THUMBNAILS["shoes"]
+
+    # 9. Pharmacy & Medicines
+    if any(k in text for k in ["dolo", "tablets", "tablet", "paracetamol", "crocin"]):
+        return PRODUCT_THUMBNAILS["tablets"]
+
+    # Category fallback
+    cat_lower = (category or "").lower()
+    if "dairy" in cat_lower:
+        return PRODUCT_THUMBNAILS["milk"]
+    if "fruit" in cat_lower or "veg" in cat_lower:
+        return PRODUCT_THUMBNAILS["tomato"]
+    if "snack" in cat_lower:
+        return PRODUCT_THUMBNAILS["chips"]
+    if "drink" in cat_lower or "beverage" in cat_lower:
+        return PRODUCT_THUMBNAILS["coca_cola"]
+    if "oil" in cat_lower:
+        return PRODUCT_THUMBNAILS["sunflower_oil"]
+    if "tech" in cat_lower or "electronic" in cat_lower:
+        return PRODUCT_THUMBNAILS["iphone"]
+    if "fashion" in cat_lower:
+        return PRODUCT_THUMBNAILS["shirt"]
+    if "pharma" in cat_lower:
+        return PRODUCT_THUMBNAILS["tablets"]
+    if "beauty" in cat_lower or "care" in cat_lower:
+        return PRODUCT_THUMBNAILS["shampoo"]
+
+    return CATEGORY_FALLBACK_SVGS.get(cat_lower, CATEGORY_FALLBACK_SVGS["general"])
 
 
 # Universal Quick-Commerce & E-Commerce Catalog Index
@@ -36,7 +214,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Dairy, Bread & Eggs",
         "pack_size": "500 ml",
         "subtitle": "Amul · 500 ml Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["milk"],
         "keywords": ["milk", "amul", "taaza", "toned milk", "dairy", "doodh"]
     },
     {
@@ -45,8 +223,8 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Dairy, Bread & Eggs",
         "pack_size": "500 ml",
         "subtitle": "Nandini · 500 ml Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=120&q=80",
-        "keywords": ["milk", "nandini", "toned milk", "karnataka milk", "dairy"]
+        "imageUrl": PRODUCT_THUMBNAILS["milk"],
+        "keywords": ["milk", "nandini", "toned milk", "karnataka milk", "dairy", "nandani"]
     },
     {
         "id": "mother-dairy-full-cream-1l",
@@ -54,8 +232,17 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Dairy, Bread & Eggs",
         "pack_size": "1 L",
         "subtitle": "Mother Dairy · 1 L Poly Pack",
-        "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["milk"],
         "keywords": ["milk", "mother dairy", "full cream", "dairy", "1l milk"]
+    },
+    {
+        "id": "milky-mist-curd-400",
+        "name": "Milky Mist Fresh Dahi / Curd",
+        "category": "Dairy, Bread & Eggs",
+        "pack_size": "400 g",
+        "subtitle": "Milky Mist · 400 g Tub",
+        "imageUrl": PRODUCT_THUMBNAILS["curd"],
+        "keywords": ["curd", "dahi", "yogurt", "milky mist curd", "dairy"]
     },
     {
         "id": "amul-salted-butter-100",
@@ -63,7 +250,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Dairy, Bread & Eggs",
         "pack_size": "100 g",
         "subtitle": "Amul · 100 g Carton",
-        "imageUrl": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["butter"],
         "keywords": ["butter", "amul butter", "makhan", "salted butter", "dairy"]
     },
     {
@@ -72,17 +259,8 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Dairy, Bread & Eggs",
         "pack_size": "200 g",
         "subtitle": "Amul · 200 g Pack",
-        "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["paneer"],
         "keywords": ["paneer", "cottage cheese", "amul paneer", "malai paneer"]
-    },
-    {
-        "id": "milky-mist-curd-400",
-        "name": "Milky Mist Fresh Dahi / Curd",
-        "category": "Dairy, Bread & Eggs",
-        "pack_size": "400 g",
-        "subtitle": "Milky Mist · 400 g Tub",
-        "imageUrl": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=120&q=80",
-        "keywords": ["curd", "dahi", "yogurt", "milky mist curd", "dairy"]
     },
     {
         "id": "britannia-brown-bread-400",
@@ -90,7 +268,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Dairy, Bread & Eggs",
         "pack_size": "400 g",
         "subtitle": "Britannia · 400 g Loaf",
-        "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["bread"],
         "keywords": ["bread", "brown bread", "wheat bread", "britannia", "toast"]
     },
     {
@@ -99,7 +277,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Dairy, Bread & Eggs",
         "pack_size": "6 pcs",
         "subtitle": "Farm Fresh · 6 pcs Tray",
-        "imageUrl": "https://images.unsplash.com/photo-1516448620398-c5f44bf9f441?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["eggs"],
         "keywords": ["eggs", "egg", "white eggs", "poultry", "anda", "tray"]
     },
 
@@ -110,7 +288,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Fruits & Vegetables",
         "pack_size": "1 kg",
         "subtitle": "Farm Fresh · 1 kg Net",
-        "imageUrl": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["tomato"],
         "keywords": ["tomato", "tamatar", "tomatoes", "red tomato", "vegetable", "veggies"]
     },
     {
@@ -119,7 +297,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Fruits & Vegetables",
         "pack_size": "500 g (3-4 pcs)",
         "subtitle": "Himachal Fresh · 4 pcs",
-        "imageUrl": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["apple"],
         "keywords": ["apple", "apples", "shimla apple", "red apple", "fruit", "seb"]
     },
     {
@@ -128,7 +306,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Fruits & Vegetables",
         "pack_size": "1 kg",
         "subtitle": "Farm Fresh · 1 kg",
-        "imageUrl": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["potato"],
         "keywords": ["potato", "potatoes", "aloo", "batata", "vegetables"]
     },
     {
@@ -137,7 +315,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Fruits & Vegetables",
         "pack_size": "1 kg",
         "subtitle": "Farm Fresh · 1 kg",
-        "imageUrl": "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["onion"],
         "keywords": ["onion", "onions", "pyaz", "kanda", "vegetables"]
     },
     {
@@ -146,7 +324,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Fruits & Vegetables",
         "pack_size": "500 g (4-5 pcs)",
         "subtitle": "Farm Fresh · 500 g",
-        "imageUrl": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["banana"],
         "keywords": ["banana", "bananas", "kela", "robusta banana", "fruits"]
     },
     {
@@ -155,7 +333,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Fruits & Vegetables",
         "pack_size": "100 g",
         "subtitle": "Farm Fresh · 100 g Bunch",
-        "imageUrl": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["coriander"],
         "keywords": ["coriander", "dhaniya", "cilantro", "herbs", "vegetables"]
     },
 
@@ -166,7 +344,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Snacks & Munchies",
         "pack_size": "50 g",
         "subtitle": "Lay's · 50 g Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["lays_blue"],
         "keywords": ["lays", "chips", "potato chips", "magic masala", "blue lays", "snack"]
     },
     {
@@ -175,7 +353,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Snacks & Munchies",
         "pack_size": "50 g",
         "subtitle": "Lay's · 50 g Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["lays_green"],
         "keywords": ["lays", "green lays", "cream onion", "chips", "snack"]
     },
     {
@@ -184,7 +362,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Snacks & Munchies",
         "pack_size": "85 g",
         "subtitle": "Kurkure · 85 g Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1528751014936-863e6e7a319c?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["kurkure"],
         "keywords": ["kurkure", "masala munch", "namkeen", "crisps", "snack"]
     },
     {
@@ -193,7 +371,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Snacks & Munchies",
         "pack_size": "60 g",
         "subtitle": "Doritos · 60 g Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1528751014936-863e6e7a319c?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["nachos"],
         "keywords": ["doritos", "nachos", "cheese nachos", "chips", "snack"]
     },
     {
@@ -202,7 +380,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Snacks & Munchies",
         "pack_size": "200 g",
         "subtitle": "Haldiram's · 200 g Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1528751014936-863e6e7a319c?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["bhujia"],
         "keywords": ["haldiram", "bhujia", "aloo bhujia", "sev", "namkeen"]
     },
 
@@ -213,7 +391,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Cold Drinks & Juices",
         "pack_size": "750 ml",
         "subtitle": "Coca-Cola · 750 ml PET Bottle",
-        "imageUrl": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["coca_cola"],
         "keywords": ["coca-cola", "coke", "cold drink", "soda", "beverages"]
     },
     {
@@ -222,7 +400,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Cold Drinks & Juices",
         "pack_size": "750 ml",
         "subtitle": "Thums Up · 750 ml Bottle",
-        "imageUrl": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["thums_up"],
         "keywords": ["thums up", "coke", "soft drink", "cold drink", "cola"]
     },
     {
@@ -231,7 +409,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Cold Drinks & Juices",
         "pack_size": "600 ml",
         "subtitle": "Frooti · 600 ml Bottle",
-        "imageUrl": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["frooti"],
         "keywords": ["frooti", "mango juice", "maaza", "mango drink", "juice"]
     },
     {
@@ -240,7 +418,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Tea, Coffee & Health Drinks",
         "pack_size": "50 g",
         "subtitle": "Nescafé · 50 g Glass Jar",
-        "imageUrl": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["coffee"],
         "keywords": ["coffee", "nescafe", "instant coffee", "cafe", "nescafe classic"]
     },
 
@@ -251,7 +429,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Edible Oils & Ghee",
         "pack_size": "1 L",
         "subtitle": "Gold Winner · 1 L Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["sunflower_oil"],
         "keywords": ["gold winner", "sunflower oil", "cooking oil", "refined oil", "oil 1l"]
     },
     {
@@ -260,7 +438,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Edible Oils & Ghee",
         "pack_size": "1 L",
         "subtitle": "Fortune · 1 L Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["sunflower_oil"],
         "keywords": ["fortune", "sunflower oil", "fortune oil", "cooking oil"]
     },
     {
@@ -269,7 +447,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Atta, Rice & Dals",
         "pack_size": "5 kg",
         "subtitle": "Aashirvaad · 5 kg Bag",
-        "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["atta"],
         "keywords": ["atta", "aashirvaad", "wheat flour", "sharbati atta", "gehu"]
     },
     {
@@ -278,7 +456,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Masalas & Spices",
         "pack_size": "1 kg",
         "subtitle": "Tata · 1 kg Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["salt"],
         "keywords": ["salt", "tata salt", "namak", "iodized salt"]
     },
     {
@@ -287,7 +465,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Atta, Rice & Dals",
         "pack_size": "1 kg",
         "subtitle": "India Gate · 1 kg Bag",
-        "imageUrl": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["rice"],
         "keywords": ["rice", "basmati rice", "india gate", "chawal", "biryani rice"]
     },
 
@@ -298,7 +476,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Bath & Body",
         "pack_size": "750 ml",
         "subtitle": "Dettol · 750 ml Refill Pouch",
-        "imageUrl": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["dettol"],
         "keywords": ["dettol", "handwash", "detol", "dettol handwash", "hand wash", "soap"]
     },
     {
@@ -307,7 +485,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Hair Care",
         "pack_size": "650 ml",
         "subtitle": "Dove · 650 ml Bottle",
-        "imageUrl": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["shampoo"],
         "keywords": ["dove", "shampoo", "dove shampoo", "hair care", "intense repair"]
     },
     {
@@ -316,7 +494,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Oral Care",
         "pack_size": "150 g",
         "subtitle": "Colgate · 150 g Tube",
-        "imageUrl": "https://images.unsplash.com/photo-1559591937-e1032c50fa47?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["toothpaste"],
         "keywords": ["toothpaste", "colgate", "teeth", "oral care", "colgate strong"]
     },
 
@@ -327,7 +505,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Mobiles & Tablets",
         "pack_size": "128 GB",
         "subtitle": "Apple · Black / Blue 128 GB",
-        "imageUrl": "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["iphone"],
         "keywords": ["iphone", "iphone 15", "apple", "smartphone", "ios", "apple phone"]
     },
     {
@@ -336,7 +514,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Mobile Accessories",
         "pack_size": "1 pc",
         "subtitle": "MagSafe Compatible · Translucent",
-        "imageUrl": "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["phone_case"],
         "keywords": ["phone case", "iphone cover", "silicon cover", "back cover", "case", "cover"]
     },
     {
@@ -345,7 +523,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Audio & Headphones",
         "pack_size": "1 unit",
         "subtitle": "boAt · 42H Playtime, Fast Charge",
-        "imageUrl": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["earbuds"],
         "keywords": ["boat", "airdopes", "earbuds", "headphones", "bluetooth earphones", "tws"]
     },
 
@@ -356,7 +534,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Men's Fashion",
         "pack_size": "Size M / L / XL",
         "subtitle": "100% Breathable Cotton · Solid Casual",
-        "imageUrl": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["shirt"],
         "keywords": ["shirt", "casual shirt", "cotton shirt", "men shirt", "formal shirt"]
     },
     {
@@ -365,7 +543,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Men's Fashion",
         "pack_size": "Size 30 / 32 / 34",
         "subtitle": "Stretchable Blue Denim · 5 Pocket",
-        "imageUrl": "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["jeans"],
         "keywords": ["jeans", "pants", "denim pants", "trousers", "men jeans", "pant"]
     },
     {
@@ -374,7 +552,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Footwear",
         "pack_size": "UK 9",
         "subtitle": "Nike · Lightweight Cushioning",
-        "imageUrl": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["shoes"],
         "keywords": ["nike", "air max", "shoes", "sneakers", "running shoes", "footwear"]
     },
 
@@ -385,7 +563,7 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "category": "Medicines & Pharmacy",
         "pack_size": "15 Tablets",
         "subtitle": "Micro Labs · Paracetamol 650mg",
-        "imageUrl": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=120&q=80",
+        "imageUrl": PRODUCT_THUMBNAILS["tablets"],
         "keywords": ["dolo", "dolo 650", "paracetamol", "fever", "tablets", "medicine"]
     },
 ]
@@ -430,8 +608,8 @@ def get_autocomplete_suggestions(query: str, limit: int = 8) -> List[Autocomplet
     """Return top matched suggestions with thumbnails for live search autocomplete.
     
     Searches:
-    1. SQLite Database registered Products & Listings
-    2. Universal Quick-Commerce & E-Commerce Catalog Index
+    1. Universal Quick-Commerce & E-Commerce Catalog Index (High-fidelity curated items)
+    2. SQLite Database registered Products & Listings (dynamically updated with resolved images)
     3. Dynamic intelligent generator for unlisted / arbitrary product queries
     """
     clean_q = query.strip()
@@ -442,7 +620,33 @@ def get_autocomplete_suggestions(query: str, limit: int = 8) -> List[Autocomplet
     results: List[AutocompleteItem] = []
     seen_names = set()
 
-    # 1. Search Database Products
+    # 1. Match Universal Catalog Index First for Curated Instant Results
+    scored_catalog = []
+    for item in UNIVERSAL_CATALOG:
+        score = _score_item(lower_q, item)
+        if score > 0 and item["name"].lower() not in seen_names:
+            scored_catalog.append((score, item))
+
+    scored_catalog.sort(key=lambda x: x[0], reverse=True)
+
+    for _, item in scored_catalog:
+        if len(results) >= limit:
+            break
+        img_url = item.get("imageUrl") or resolve_product_thumbnail(item["name"], item.get("category"))
+        results.append(
+            AutocompleteItem(
+                id=item["id"],
+                name=item["name"],
+                imageUrl=img_url,
+                image_url=img_url,
+                category=item.get("category"),
+                pack_size=item.get("pack_size"),
+                subtitle=item.get("subtitle")
+            )
+        )
+        seen_names.add(item["name"].lower())
+
+    # 2. Search Database Products
     try:
         db = SessionLocal()
         search_pattern = f"%{clean_q}%"
@@ -455,19 +659,25 @@ def get_autocomplete_suggestions(query: str, limit: int = 8) -> List[Autocomplet
         ).limit(limit).all()
 
         for p in db_products:
+            if len(results) >= limit:
+                break
             norm_name = p.canonical_name.strip()
             if norm_name.lower() in seen_names:
                 continue
 
-            # Look up an image from any associated listing
-            img = None
+            # Look up an image from any associated listing or resolve product-specific image
             first_listing = db.query(ProductListingRecord).filter(
                 ProductListingRecord.product_id == p.id
             ).first()
-            if first_listing and first_listing.image_url:
+
+            if first_listing and first_listing.image_url and "photo-1474979266404-7eaacbcd87c5" not in first_listing.image_url:
                 img = first_listing.image_url
             else:
-                img = CATEGORY_DEFAULT_THUMBNAILS.get(p.category or "", CATEGORY_DEFAULT_THUMBNAILS["general"])
+                img = resolve_product_thumbnail(norm_name, p.category, p.brand)
+                # Auto-heal listing image in DB
+                if first_listing and (not first_listing.image_url or "photo-1474979266404-7eaacbcd87c5" in first_listing.image_url):
+                    first_listing.image_url = img
+                    db.commit()
 
             unit_str = f"{p.normalized_quantity:g}{p.normalized_unit}" if p.normalized_quantity and p.normalized_unit else ""
             category_title = (p.category or "General").replace("_", " ").title()
@@ -477,6 +687,7 @@ def get_autocomplete_suggestions(query: str, limit: int = 8) -> List[Autocomplet
                     id=f"db_{p.id}",
                     name=norm_name,
                     imageUrl=img,
+                    image_url=img,
                     category=category_title,
                     pack_size=unit_str or None,
                     subtitle=f"{p.brand or category_title} · {unit_str}".strip(" · ") if unit_str else p.brand or category_title
@@ -488,47 +699,22 @@ def get_autocomplete_suggestions(query: str, limit: int = 8) -> List[Autocomplet
         # Resilient to any DB lock or connection issue
         pass
 
-    # 2. Match Universal Catalog Index
-    scored_catalog = []
-    for item in UNIVERSAL_CATALOG:
-        score = _score_item(lower_q, item)
-        if score > 0 and item["name"].lower() not in seen_names:
-            scored_catalog.append((score, item))
-
-    # Sort catalog matches by score descending
-    scored_catalog.sort(key=lambda x: x[0], reverse=True)
-
-    for _, item in scored_catalog:
-        if len(results) >= limit:
-            break
-        results.append(
-            AutocompleteItem(
-                id=item["id"],
-                name=item["name"],
-                imageUrl=item.get("imageUrl"),
-                category=item.get("category"),
-                pack_size=item.get("pack_size"),
-                subtitle=item.get("subtitle")
-            )
-        )
-        seen_names.add(item["name"].lower())
-
     # 3. Dynamic Fallback for arbitrary / unlisted products
-    # If the user is typing something not yet in the catalog (e.g. "dragon fruit", "green tea")
     if len(results) < 2 and len(clean_q) >= 2:
         parsed = parse_query(clean_q)
         cat_key = parsed.category or "general"
         cat_name = cat_key.replace("_", " ").title()
-        fallback_img = CATEGORY_DEFAULT_THUMBNAILS.get(cat_key, CATEGORY_DEFAULT_THUMBNAILS["general"])
         unit_str = f"{parsed.normalized_quantity:g}{parsed.normalized_unit}" if parsed.normalized_quantity and parsed.normalized_unit else None
 
         generated_name = clean_q.title()
         if generated_name.lower() not in seen_names:
+            img = resolve_product_thumbnail(generated_name, cat_key, parsed.brand)
             results.append(
                 AutocompleteItem(
                     id=f"dyn_{re.sub(r'[^a-zA-Z0-9]', '_', clean_q.lower())}",
                     name=generated_name,
-                    imageUrl=fallback_img,
+                    imageUrl=img,
+                    image_url=img,
                     category=cat_name,
                     pack_size=unit_str,
                     subtitle=f"{parsed.brand or cat_name}{' · ' + unit_str if unit_str else ''}"

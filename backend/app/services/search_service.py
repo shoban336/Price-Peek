@@ -17,6 +17,7 @@ from app.registry import registry
 from app.matching.matcher import filter_and_normalize_listings
 from app.comparison.comparator import compare_and_rank_prices
 from app.connectors.base_connector import RawProductListing
+from app.services.autocomplete_service import resolve_product_thumbnail
 
 
 def _slugify(text: str) -> str:
@@ -269,6 +270,7 @@ def _generate_verified_cached_fallbacks(parsed: ParsedQuery, pin_code: str) -> L
                 rating_count=cfg["count"],
                 product_url=p_url,
                 deep_link_url=p_deep,
+                image_url=resolve_product_thumbnail(full_title, cfg["cat"]),
                 in_stock=cfg["in_stock"],
                 is_live=False,
                 delivery_pin=pin_code,
@@ -276,7 +278,6 @@ def _generate_verified_cached_fallbacks(parsed: ParsedQuery, pin_code: str) -> L
             )
         )
 
-    return fallbacks
     return fallbacks
 
 
