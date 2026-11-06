@@ -5,11 +5,25 @@ from app.config.settings import get_settings
 from app.schemas.search_schema import (
     SearchRequest,
     SearchResponse,
+    AutocompleteItem,
 )
 from app.services.search_service import execute_universal_search
+from app.services.autocomplete_service import get_autocomplete_suggestions
 
 router = APIRouter(prefix="/search", tags=["Universal Search"])
 settings = get_settings()
+
+
+@router.get("/autocomplete", response_model=List[AutocompleteItem])
+async def autocomplete_search(
+    q: str = Query(..., min_length=1, description="Partial search query (e.g. 'mil', 'apple', 'lays', 'tomato')"),
+    limit: int = Query(8, ge=1, le=20, description="Max number of suggestions to return")
+) -> List[AutocompleteItem]:
+    """Rich live search autocomplete endpoint (Blinkit style).
+    
+    Returns lightweight JSON with product thumbnails, categories, pack sizes, and direct search titles.
+    """
+    return get_autocomplete_suggestions(query=q, limit=limit)
 
 
 @router.get("", response_model=SearchResponse)

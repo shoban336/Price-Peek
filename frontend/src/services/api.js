@@ -23,6 +23,22 @@ export async function searchProducts(query, pinCode = '560001', sortBy = 'price_
   return response.json();
 }
 
+export async function fetchAutocompleteSuggestions(query, limit = 8) {
+  if (!query || !query.trim()) return [];
+  try {
+    const params = new URLSearchParams({
+      q: query.trim(),
+      limit: limit.toString(),
+    });
+    const response = await fetch(`${BASE_URL}/search/autocomplete?${params.toString()}`);
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (err) {
+    console.error('Error fetching autocomplete suggestions:', err);
+    return [];
+  }
+}
+
 export async function getPlatforms(category = null, enabledOnly = false) {
   const params = new URLSearchParams();
   if (category) params.append('category', category);

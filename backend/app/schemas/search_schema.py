@@ -69,3 +69,13 @@ class SearchResponse(BaseModel):
     summary: ComparisonSummary
     listings: List[ProductListing] = []
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AutocompleteItem(BaseModel):
+    """Rich product suggestion for live autocomplete dropdown (Blinkit style)."""
+    id: str
+    name: str
+    imageUrl: Optional[str] = None
+    category: Optional[str] = None
+    pack_size: Optional[str] = None
+    subtitle: Optional[str] = None
