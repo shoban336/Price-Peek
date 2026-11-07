@@ -1,9 +1,73 @@
 """Pandas and NumPy based price comparison, ranking, and discount computation engine."""
-from typing import List, Tuple, Optional
+import re
+import urllib.parse
+from typing import List, Tuple, Optional, Any
 import pandas as pd
 import numpy as np
 
 from app.schemas.search_schema import ProductListing, ComparisonSummary
+
+
+def is_valid_pdp_listing(listing: Any) -> bool:
+    """
+    Ensures only genuine, direct product listings are included in comparison results.
+    Excludes search fallbacks, homepages, and empty URLs across ALL platforms.
+    """
+    if not listing:
+        return False
+
+    # Extract product_url and price supporting dicts, dataclasses, and Pydantic models
+    if isinstance(listing, dict):
+        product_url = listing.get("product_url")
+        price = listing.get("price") if listing.get("price") is not None else listing.get("current_price")
+    else:
+        product_url = getattr(listing, "product_url", None)
+        price = getattr(listing, "price", None)
+        if price is None:
+            price = getattr(listing, "current_price", None)
+
+    if not product_url or not isinstance(product_url, str):
+        return False
+
+    url = product_url.strip().lower()
+
+    # Exclude invalid URL structures
+    if not (url.startswith("http://") or url.startswith("https://")):
+        return False
+
+    parsed_url = urllib.parse.urlparse(url)
+    path = parsed_url.path.strip('/')
+    if not path:
+        return False
+
+    # Reject generic homepages
+    domain_only = re.sub(r'https?://(www\.)?', '', url).strip('/')
+    if domain_only in [
+        "amazon.in", "flipkart.com", "jiomart.com", "blinkit.com",
+        "zeptonow.com", "bigbasket.com", "croma.com", "myntra.com",
+        "ajio.com", "nykaa.com", "1mg.com"
+    ]:
+        return False
+
+    # Reject search route fallbacks across all platforms
+    search_patterns = [
+        "/search/", "/search?", "?q=", "&q=", "?k=", 
+        "/ps/?q=", "/s/?q=", "site:jiomart.com", "site:amazon.in",
+        "/searchb?", "/catalogsearch/", "/search"
+    ]
+    if any(pattern in url for pattern in search_patterns):
+        return False
+
+    # Must have a valid positive price
+    if price is None:
+        return False
+    try:
+        if float(price) <= 0:
+            return False
+    except (ValueError, TypeError):
+        return False
+
+    return True
 
 
 def compare_and_rank_prices(
@@ -15,8 +79,12 @@ def compare_and_rank_prices(
     
     Identifies the cheapest option, calculates max savings and statistical spread,
     and returns sorted listings with a detailed ComparisonSummary.
+    Strictly excludes any listings that fail direct canonical PDP verification.
     """
-    if not listings:
+    # Strict validation: exclude any non-PDP or search fallback listing
+    valid_listings = [item for item in listings if is_valid_pdp_listing(item)]
+
+    if not valid_listings:
         empty_summary = ComparisonSummary(
             cheapest_platform=None,
             cheapest_platform_id=None,
@@ -30,7 +98,7 @@ def compare_and_rank_prices(
         return [], empty_summary
 
     # Build DataFrame from Pydantic models
-    records = [item.model_dump() for item in listings]
+    records = [item.model_dump() for item in valid_listings]
     df = pd.DataFrame.from_records(records)
 
     # Price validation and cleaning
