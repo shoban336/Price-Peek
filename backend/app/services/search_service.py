@@ -19,6 +19,7 @@ from app.comparison.comparator import compare_and_rank_prices
 from app.connectors.base_connector import RawProductListing
 from app.services.autocomplete_service import resolve_product_thumbnail
 from app.intelligence.url_resolver import parse_product_url
+from app.connectors.jiomart_connector import build_universal_jiomart_url
 
 
 def _slugify(text: str) -> str:
@@ -85,8 +86,8 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
         elif platform_id == "jiomart":
             return (
-                "https://www.jiomart.com/search?q=gold+winner+refined+sunflower+oil+1l",
-                "jiomart://search?q=gold+winner"
+                build_universal_jiomart_url(product_name="gold winner refined sunflower oil 1l"),
+                "jiomart://search/gold%20winner"
             )
 
     if any(k in lower_query for k in ["dettol", "detol"]) and any(k in lower_query for k in ["handwash", "hand wash", "liquid"]):
@@ -97,8 +98,8 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
         elif platform_id == "jiomart":
             return (
-                "https://www.jiomart.com/search?q=dettol+liquid+handwash",
-                "jiomart://search?q=dettol+liquid+handwash"
+                build_universal_jiomart_url(product_name="dettol liquid handwash"),
+                "jiomart://search/dettol%20liquid%20handwash"
             )
         elif platform_id == "bigbasket":
             return (
@@ -139,7 +140,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
         elif platform_id == "jiomart":
             return (
-                "https://www.jiomart.com/p/groceries/amul-butter-100-g-carton/490000073",
+                build_universal_jiomart_url(raw_product_url="https://www.jiomart.com/p/groceries/amul-butter-100-g-carton/490000073"),
                 "jiomart://product/490000073"
             )
         elif platform_id == "amazon":
@@ -161,7 +162,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
         elif platform_id == "croma":
             return "https://www.croma.com/apple-iphone-15-128gb-black-/p/300652", "croma://product/300652"
         elif platform_id == "jiomart":
-            return "https://www.jiomart.com/search?q=apple+iphone+15+128gb", "jiomart://search?q=apple+iphone+15"
+            return build_universal_jiomart_url(product_name="apple iphone 15 128gb"), "jiomart://search/apple%20iphone%2015"
 
     if "dove" in lower_query and "shampoo" in lower_query:
         if platform_id == "amazon":
@@ -173,7 +174,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
         elif platform_id == "blinkit":
             return "https://blinkit.com/s/?q=dove+intense+repair+shampoo", "grofers://search?q=dove+shampoo"
         elif platform_id == "jiomart":
-            return "https://www.jiomart.com/search?q=dove+intense+repair+shampoo", "jiomart://search?q=dove+shampoo"
+            return build_universal_jiomart_url(product_name="dove intense repair shampoo"), "jiomart://search/dove%20shampoo"
 
     if "dolo" in lower_query:
         if platform_id == "tata1mg":
@@ -189,7 +190,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
     elif platform_id == "flipkart":
         return f"https://www.flipkart.com/search?q={encoded_search}", f"flipkart://search?q={encoded_search}"
     elif platform_id == "jiomart":
-        return f"https://www.jiomart.com/search?q={encoded_search}", f"jiomart://search?q={encoded_search}"
+        return build_universal_jiomart_url(product_name=clean_term), f"jiomart://search/{urllib.parse.quote(clean_term)}"
     elif platform_id == "zepto":
         return f"https://www.zeptonow.com/search?q={encoded_search}", f"zepto://search?q={encoded_search}"
     elif platform_id == "blinkit":

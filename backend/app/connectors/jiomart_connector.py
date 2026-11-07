@@ -1,10 +1,46 @@
 """JioMart Storefront Connector."""
 import urllib.parse
+import re
 from bs4 import BeautifulSoup
 from typing import List, Optional
 from app.connectors.base_connector import BaseConnector, RawProductListing
 from app.connectors.http_client import fetch_page
 from app.schemas.platform_schema import PlatformStatus, PlatformCategory
+
+
+def build_universal_jiomart_url(raw_product_url: Optional[str] = None, product_name: str = "") -> str:
+    """
+    Universally generates a valid, working JioMart URL for ANY product.
+    Prioritizes canonical product page URLs (/p/...) and handles search fallbacks
+    without invalid query parameters (?q=) or search-breaking tokens.
+    """
+    # 1. If a valid, full product page URL is already captured, use it directly
+    if raw_product_url and raw_product_url.startswith("http"):
+        # Ensure it's not an already broken ?q= URL
+        if "search?q=" not in raw_product_url:
+            return raw_product_url
+
+    # 2. If it's a relative path from scraping (e.g. /p/groceries/...), append domain
+    if raw_product_url and raw_product_url.startswith("/"):
+        return f"https://www.jiomart.com{raw_product_url}"
+
+    # 3. Universal query cleaner for search fallback (applies to ALL products)
+    # Remove decimal normalized units that break JioMart routing (e.g., 0.1kg, 0.5L)
+    clean = re.sub(r'\b0\.\d+\s*(kg|l|litre|litres|gm|g|ml)\b', '', product_name, flags=re.IGNORECASE)
+    
+    # Remove technical punctuation/symbols that cause 404s in JioMart path routing
+    clean = re.sub(r'[/\\#?&%+]', ' ', clean)
+    
+    # Collapse multiple spaces
+    clean = re.sub(r'\s+', ' ', clean).strip()
+
+    # Fallback to base product name if clean became empty
+    if not clean:
+        clean = product_name.strip()
+
+    # JioMart uses path-based search routing: /search/<encoded_term> (NEVER ?q=)
+    encoded_term = urllib.parse.quote(clean)
+    return f"https://www.jiomart.com/search/{encoded_term}"
 
 
 class JioMartConnector(BaseConnector):
@@ -17,8 +53,7 @@ class JioMartConnector(BaseConnector):
     app_scheme = "jiomart://home"
 
     async def search(self, query: str, pin_code: Optional[str] = None) -> List[RawProductListing]:
-        encoded = urllib.parse.quote_plus(query)
-        url = f"https://www.jiomart.com/search?q={encoded}"
+        url = build_universal_jiomart_url(product_name=query)
         response = await fetch_page(url)
 
         if not response:
@@ -56,9 +91,8 @@ class JioMartConnector(BaseConnector):
                     except ValueError:
                         orig_price = None
 
-                href = link_node.get("href", "")
-                if href and not href.startswith("http"):
-                    href = f"https://www.jiomart.com{href}"
+                raw_href = link_node.get("href", "")
+                product_url = build_universal_jiomart_url(raw_product_url=raw_href, product_name=raw_title)
 
                 discount = None
                 if orig_price and orig_price > price:
@@ -73,8 +107,8 @@ class JioMartConnector(BaseConnector):
                         price=price,
                         original_price=orig_price,
                         discount_percent=discount,
-                        product_url=href,
-                        deep_link_url=f"jiomart://product/{href.split('/')[-1]}",
+                        product_url=product_url,
+                        deep_link_url=f"jiomart://product/{product_url.split('/')[-1]}",
                         image_url=img_node.get("src") if img_node else None,
                         is_live=True,
                         delivery_pin=pin_code,
