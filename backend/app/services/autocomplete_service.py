@@ -31,7 +31,8 @@ PRODUCT_THUMBNAILS = {
     "banana": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=120&q=80",
     "coriander": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=120&q=80",
 
-    # Snacks
+    # Snacks & Bakery
+    "biscuit": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=120&q=80",
     "lays_blue": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
     "lays_green": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
     "chips": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=120&q=80",
@@ -60,6 +61,7 @@ PRODUCT_THUMBNAILS = {
     "iphone": "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=120&q=80",
     "phone_case": "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=120&q=80",
     "earbuds": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=120&q=80",
+    "headphones": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=120&q=80",
 
     # Fashion
     "shirt": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=120&q=80",
@@ -99,8 +101,8 @@ def resolve_product_thumbnail(name: str, category: Optional[str] = None, brand: 
         return PRODUCT_THUMBNAILS["iphone"]
     if any(k in text for k in ["phone case", "cover", "back cover", "case", "tempered glass"]):
         return PRODUCT_THUMBNAILS["phone_case"]
-    if any(k in text for k in ["earbuds", "boat", "headphones", "airpods", "tws", "earphone"]):
-        return PRODUCT_THUMBNAILS["earbuds"]
+    if any(k in text for k in ["earbuds", "boat", "headphones", "airpods", "tws", "earphone", "rockerz"]):
+        return PRODUCT_THUMBNAILS["headphones"] if any(k in text for k in ["headphone", "headphones", "rockerz"]) else PRODUCT_THUMBNAILS["earbuds"]
 
     # 2. Dairy Products
     if any(k in text for k in ["milk", "doodh", "toned milk", "nandani", "nandini"]):
@@ -130,7 +132,9 @@ def resolve_product_thumbnail(name: str, category: Optional[str] = None, brand: 
     if any(k in text for k in ["coriander", "dhaniya", "cilantro"]):
         return PRODUCT_THUMBNAILS["coriander"]
 
-    # 4. Snacks & Munchies
+    # 4. Snacks & Munchies & Biscuits
+    if any(k in text for k in ["biscuit", "biscuits", "cookie", "cookies", "good day", "bourbon", "marie"]):
+        return PRODUCT_THUMBNAILS["biscuit"]
     if "lays" in text or "lay's" in text:
         return PRODUCT_THUMBNAILS["lays_blue"]
     if any(k in text for k in ["chips", "crisps", "potato chips"]):
@@ -384,6 +388,15 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "imageUrl": PRODUCT_THUMBNAILS["bhujia"],
         "keywords": ["haldiram", "bhujia", "aloo bhujia", "sev", "namkeen"]
     },
+    {
+        "id": "britannia-good-day-butter-cookies-200",
+        "name": "Britannia Good Day Butter Cookies",
+        "category": "Snacks & Munchies",
+        "pack_size": "200 g",
+        "subtitle": "Britannia · 200 g Pack",
+        "imageUrl": PRODUCT_THUMBNAILS["biscuit"],
+        "keywords": ["good day", "good day biscuit", "biscuit", "biscuits", "cookies", "britannia", "butter cookies"]
+    },
 
     # --- Beverages & Cold Drinks ---
     {
@@ -526,6 +539,15 @@ UNIVERSAL_CATALOG: List[Dict[str, Any]] = [
         "subtitle": "boAt · 42H Playtime, Fast Charge",
         "imageUrl": PRODUCT_THUMBNAILS["earbuds"],
         "keywords": ["boat", "airdopes", "earbuds", "headphones", "bluetooth earphones", "tws"]
+    },
+    {
+        "id": "boat-rockerz-wireless-headphones",
+        "name": "boAt Rockerz Bluetooth Wireless Headphones",
+        "category": "Audio & Headphones",
+        "pack_size": "1 unit",
+        "subtitle": "boAt · Wireless Over Ear Headphones",
+        "imageUrl": PRODUCT_THUMBNAILS["headphones"],
+        "keywords": ["boat", "rockerz", "headphones", "boat rockerz", "bluetooth headphones", "headphone"]
     },
 
     # --- Fashion & Apparel ---

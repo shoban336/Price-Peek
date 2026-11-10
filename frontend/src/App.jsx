@@ -56,6 +56,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     setCurrentQuery(queryText);
+    setSelectedCategory('all');
 
     try {
       const data = await searchProducts(queryText, pinCode, sortBy);
@@ -87,11 +88,53 @@ export default function App() {
     }
   };
 
+  // Robust category matcher handling aliases and naming variations
+  const matchesCategory = (itemCategory, targetCategory) => {
+    if (!targetCategory || targetCategory === 'all') return true;
+    if (!itemCategory) return true;
+    
+    const itemNorm = itemCategory.toLowerCase().replace(/[\s\-_&]/g, '');
+    const targetNorm = targetCategory.toLowerCase().replace(/[\s\-_&]/g, '');
+    
+    if (itemNorm === targetNorm) return true;
+    
+    // Quick Commerce & Grocery shared alignment
+    if ((targetNorm.includes('grocery') || targetNorm.includes('quick')) &&
+        (itemNorm.includes('grocery') || itemNorm.includes('quick'))) {
+      return true;
+    }
+    if (targetNorm.includes('ecom') && itemNorm.includes('ecom')) return true;
+    if ((targetNorm.includes('fashion') || targetNorm.includes('apparel')) &&
+        (itemNorm.includes('fashion') || itemNorm.includes('apparel'))) {
+      return true;
+    }
+    if ((targetNorm.includes('electro') || targetNorm.includes('tech')) &&
+        (itemNorm.includes('electro') || itemNorm.includes('tech'))) {
+      return true;
+    }
+    if ((targetNorm.includes('pharm') || targetNorm.includes('medic')) &&
+        (itemNorm.includes('pharm') || itemNorm.includes('medic'))) {
+      return true;
+    }
+    if ((targetNorm.includes('beauty') || targetNorm.includes('personal')) &&
+        (itemNorm.includes('beauty') || itemNorm.includes('personal'))) {
+      return true;
+    }
+
+    return itemNorm.includes(targetNorm) || targetNorm.includes(itemNorm);
+  };
+
   // Filter listings based on chosen platform category
-  const displayedListings = (searchResults?.listings || []).filter((item) => {
+  const allListings = searchResults?.listings || [];
+  const filteredListings = allListings.filter((item) => {
     if (selectedCategory === 'all') return true;
-    return item.platform_category === selectedCategory;
+    return matchesCategory(item.platform_category, selectedCategory);
   });
+
+  // Never drop results on empty sub-filter if search has valid listings
+  const displayedListings = (filteredListings.length > 0 || selectedCategory === 'all')
+    ? filteredListings
+    : allListings;
 
   const cheapestId = searchResults?.summary?.cheapest_platform_id;
 
@@ -187,6 +230,12 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {selectedCategory !== 'all' && filteredListings.length === 0 && allListings.length > 0 && (
+              <div style={{ textAlign: 'center', margin: '0.6rem 0', color: '#64748b', fontSize: '0.86rem' }}>
+                Showing all available stores (no exclusive listings under chosen filter).
+              </div>
+            )}
 
             {/* Empty filter result fallback */}
             {displayedListings.length === 0 ? (

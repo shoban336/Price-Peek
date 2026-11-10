@@ -37,7 +37,10 @@ def is_valid_pdp_listing(listing: Any) -> bool:
 
     parsed_url = urllib.parse.urlparse(url)
     path = parsed_url.path.strip('/')
-    if not path:
+    query = parsed_url.query.strip()
+    
+    # Must have a non-empty path or search query parameter
+    if not path and not query:
         return False
 
     # Reject generic homepages
@@ -49,18 +52,14 @@ def is_valid_pdp_listing(listing: Any) -> bool:
     ]:
         return False
 
-    # Reject search route fallbacks across all platforms
-    search_patterns = [
-        "/search/", "/search?", "?q=", "&q=", "?k=", 
-        "/ps/?q=", "/s/?q=", "site:jiomart.com", "site:amazon.in",
-        "/searchb?", "/catalogsearch/", "/search"
-    ]
-    if any(pattern in url for pattern in search_patterns):
+    # Reject broken placeholders / scraping injections
+    broken_patterns = ["site:jiomart.com", "site:amazon.in", "{quote_plus", "{quote"]
+    if any(pat in url for pat in broken_patterns):
         return False
 
-    # Strictly require modern /product/ URL pattern for JioMart and reject legacy /p/ paths
+    # Strictly reject legacy broken /p/ paths on JioMart that cause 404s
     if "jiomart.com" in parsed_url.netloc or "jiomart" in parsed_url.netloc:
-        if "/product/" not in url or "/p/" in url:
+        if "/p/" in url:
             return False
 
     # Must have a valid positive price

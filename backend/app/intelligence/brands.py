@@ -7,20 +7,23 @@ from app.schemas.platform_schema import PlatformCategory
 
 # Common high-frequency multi-word and single-word brand prefixes
 KNOWN_BRANDS = [
-    # Grocery / FMCG / Hygiene
+    # Grocery / FMCG / Hygiene / Beverages
+    "Coca-Cola", "Coca Cola", "Coke", "Good Day", "Pepsi", "Thums Up", "Sprite", "Fanta", "Limca", "Frooti", "Maaza",
     "Gold Winner", "Fortune", "Tata Sampann", "Tata Salt", "Tata Tea", "Aashirvaad",
     "Amul", "Mother Dairy", "Saffola", "Dhara", "India Gate", "Daawat", "Nestle",
-    "Cadbury", "Britannia", "Sunfeast", "Parle", "Haldiram's", "Everest", "MDH",
+    "Cadbury", "Britannia", "Sunfeast", "Parle", "Oreo", "Bourbon", "Haldiram's", "Haldiram", "Everest", "MDH",
+    "Lay's", "Lays", "Kurkure", "Doritos", "Bingo",
     "Dettol", "Lifebuoy", "Savlon", "Godrej", "Cinthol", "Pears", "Lux", "Surf Excel",
     "Ariel", "Vim", "Pril", "Harpic", "Lizol", "Colin",
-    # Electronics
-    "Apple", "Samsung", "Google Pixel", "OnePlus", "Xiaomi", "Realme", "Vivo", "Oppo",
-    "Sony", "HP", "Dell", "Lenovo", "Asus", "Acer", "Boat", "Noise", "JBL", "Bose",
-    "LG", "Whirlpool", "Panasonic", "Motorola", "Nothing", "Spigen", "Portronics",
+    # Electronics & Audio
+    "Apple", "Samsung", "Google Pixel", "OnePlus", "Xiaomi", "Redmi", "Realme", "Vivo", "Oppo", "Poco", "iQOO",
+    "Boat", "boAt", "Noise", "Fire-Boltt", "Boult", "JBL", "Sony", "Bose", "Sennheiser", "Zebronics", "Portronics",
+    "HP", "Dell", "Lenovo", "Asus", "Acer", "LG", "Whirlpool", "Panasonic", "Motorola", "Nothing", "Spigen",
     # Personal Care / Beauty / Pharmacy
     "Dove", "Nivea", "L'Oreal", "Garnier", "Tresemme", "Head & Shoulders", "Pantene",
     "Mamaearth", "Cetaphil", "Neutrogena", "Minimalist", "The Derma Co", "Colgate",
-    "Dolo", "Crocin", "Combiflam", "Vicks", "Himalaya", "Dabur", "Baidyanath", "Nykaa",
+    "Dolo", "Crocin", "Calpol", "Combiflam", "Vicks", "Strepsils", "Otrivin", "Volini", "Moov", "Iodex", "Band-Aid",
+    "Himalaya", "Dabur", "Baidyanath", "Nykaa", "Eno", "Digene",
     # Fashion
     "Nike", "Adidas", "Puma", "Reebok", "Under Armour", "Levi's", "Zara", "H&M",
     "Allen Solly", "Peter England", "Louis Philippe", "Van Heusen", "Red Tape", "Bata",
@@ -28,35 +31,44 @@ KNOWN_BRANDS = [
 ]
 
 CATEGORY_KEYWORDS = {
+    PlatformCategory.PHARMACY: [
+        "tablet", "tablets", "capsule", "capsules", "syrup", "paracetamol",
+        "dolo", "dolo 650", "crocin", "calpol", "combiflam", "strip",
+        "ointment", "drops", "pain relief", "vitamin", "multivitamin",
+        "bandage", "band-aid", "thermometer", "inhaler", "medicine",
+        "balm", "spray", "cough", "fever", "digene", "eno", "ors", "vicks", "volini", "moov"
+    ],
     PlatformCategory.GROCERY: [
-        "oil", "sunflower", "mustard", "atta", "flour", "rice", "dal", "pulses",
-        "sugar", "salt", "tea", "coffee", "milk", "butter", "cheese", "ghee",
-        "paneer", "masala", "spices", "biscuit", "cookies", "noodles", "ketchup",
-        "detergent", "soap bar", "surf excel", "vim", "handwash", "hand wash",
-        "dettol", "savlon", "sanitizer", "dishwash", "floor cleaner"
+        "biscuit", "biscuits", "cookie", "cookies", "good day", "marie", "bourbon", "oreo", "parle",
+        "drink", "drinks", "soft drink", "cold drink", "cola", "coke", "coca-cola", "coca cola",
+        "pepsi", "thums up", "sprite", "fanta", "mirinda", "limca", "frooti", "maaza", "slice",
+        "juice", "beverage", "soda", "oil", "sunflower", "mustard", "refined oil", "cooking oil",
+        "ghee", "atta", "wheat", "flour", "rice", "basmati", "dal", "pulses", "sugar", "salt",
+        "tea", "coffee", "milk", "butter", "cheese", "paneer", "curd", "dahi", "egg", "eggs",
+        "bread", "toast", "chips", "crisps", "lays", "kurkure", "nachos", "namkeen", "bhujia",
+        "noodles", "maggi", "pasta", "sauce", "ketchup", "masala", "spices", "chocolate", "cadbury",
+        "detergent", "soap bar", "surf excel", "vim", "handwash", "hand wash", "dettol", "savlon",
+        "sanitizer", "dishwash", "floor cleaner", "vegetable", "vegetables", "fruit", "fruits",
+        "tomato", "potato", "onion"
     ],
     PlatformCategory.ELECTRONICS: [
         "phone", "smartphone", "iphone", "galaxy", "pixel", "laptop", "macbook",
-        "notebook", "tablet", "ipad", "headphone", "earbuds", "earphone", "tv",
-        "television", "smartwatch", "monitor", "charger", "powerbank", "speaker",
-        "camera", "ssd", "ram", "gpu", "processor", "case", "phone case", "back cover",
-        "cover", "tempered glass", "screen guard", "cable", "adapter", "mouse", "keyboard"
-    ],
-    PlatformCategory.PHARMACY: [
-        "tablet", "tablets", "capsule", "capsules", "syrup", "paracetamol",
-        "ointment", "drops", "pain relief", "vitamin", "multivitamin", "strip",
-        "bandage", "thermometer", "inhaler", "dolo", "crocin"
+        "notebook", "tablet", "ipad", "headphone", "headphones", "earbuds", "earbud",
+        "earphone", "earphones", "tws", "airpods", "neckband", "rockerz", "boat", "noise",
+        "tv", "television", "smartwatch", "watch", "monitor", "charger", "powerbank", "power bank",
+        "speaker", "soundbar", "camera", "ssd", "ram", "gpu", "processor", "case", "phone case",
+        "back cover", "cover", "tempered glass", "screen guard", "cable", "adapter", "mouse", "keyboard"
     ],
     PlatformCategory.BEAUTY: [
         "shampoo", "conditioner", "facewash", "face wash", "moisturizer",
         "sunscreen", "serum", "lotion", "body wash", "perfume", "deodorant",
-        "lipstick", "foundation", "eyeliner", "kajal", "skin cream"
+        "lipstick", "foundation", "eyeliner", "kajal", "skin cream", "hair oil"
     ],
     PlatformCategory.FASHION: [
-        "shoes", "sneakers", "sandals", "t-shirt", "tshirt", "tee", "shirt", "shirts",
-        "jeans", "pant", "pants", "trousers", "trouser", "cargo", "shorts", "jacket",
-        "hoodie", "dress", "kurta", "kurti", "saree", "blazer", "suit", "trackpant",
-        "sunglasses", "watch", "handbag", "wallet", "belt"
+        "shoes", "sneakers", "sandals", "slippers", "footwear", "t-shirt", "tshirt",
+        "tee", "shirt", "shirts", "jeans", "pant", "pants", "trousers", "trouser",
+        "cargo", "shorts", "jacket", "hoodie", "dress", "kurta", "kurti", "saree",
+        "blazer", "suit", "trackpant", "sunglasses", "handbag", "wallet", "belt"
     ]
 }
 

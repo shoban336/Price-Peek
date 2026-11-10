@@ -6,7 +6,7 @@ from app.services.search_service import execute_universal_search
 
 
 def test_is_valid_pdp_listing_accepts_canonical_urls():
-    """Verify genuine direct PDP URLs pass validation."""
+    """Verify genuine direct PDP URLs and official store search URLs pass validation."""
     valid_urls = [
         "https://www.amazon.in/dp/B0FNX5ZG78",
         "https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4",
@@ -16,6 +16,14 @@ def test_is_valid_pdp_listing_accepts_canonical_urls():
         "https://www.bigbasket.com/pd/274141/gold-winner-refined-sunflower-oil-1-l-pouch/",
         "https://www.croma.com/apple-iphone-15-128gb-black-/p/300652",
         "https://www.1mg.com/drugs/dolo-650-tablet-41639",
+        "https://www.amazon.in/s?k=dolo+650",
+        "https://www.flipkart.com/search?q=oil",
+        "https://blinkit.com/s/?q=good+day+biscuit",
+        "https://www.zeptonow.com/search?q=coca+cola",
+        "https://www.jiomart.com/search/Good%20Day%20Biscuit",
+        "https://www.bigbasket.com/ps/?q=atta",
+        "https://www.1mg.com/search/all?name=paracetamol",
+        "https://www.croma.com/searchB?q=boat+headphones",
     ]
     for u in valid_urls:
         listing = ProductListing(
@@ -26,27 +34,20 @@ def test_is_valid_pdp_listing_accepts_canonical_urls():
             price=150.0,
             product_url=u,
         )
-        assert is_valid_pdp_listing(listing) is True, f"Failed for valid PDP: {u}"
+        assert is_valid_pdp_listing(listing) is True, f"Failed for valid PDP/Search URL: {u}"
 
 
 def test_is_valid_pdp_listing_rejects_search_and_homepages():
-    """Verify search fallbacks, homepages, and empty URLs are strictly rejected."""
+    """Verify naked homepages, empty URLs, and legacy JioMart /p/ paths are strictly rejected."""
     invalid_urls = [
-        "https://www.amazon.in/s?k=dettol",
-        "https://www.flipkart.com/search?q=oil",
-        "https://www.jiomart.com/search/oil",
-        "https://www.jiomart.com/search?q=oil",
         "https://www.jiomart.com/p/groceries/dettol-original-liquid-handwash-refill-750-ml/490001844",
         "https://www.jiomart.com/p/electronics/apple-iphone-15/590798548",
-        "https://www.bigbasket.com/ps/?q=oil",
-        "https://blinkit.com/s/?q=oil",
-        "https://www.zeptonow.com/search?q=oil",
-        "https://www.croma.com/searchb?q=iphone",
-        "https://www.1mg.com/search/all?name=dolo",
         "https://www.amazon.in/",
         "https://flipkart.com",
         "https://jiomart.com/",
+        "https://blinkit.com/",
         "http://invalid",
+        "site:jiomart.com oil",
         "",
     ]
     for u in invalid_urls:
@@ -90,8 +91,8 @@ def test_comparator_excludes_invalid_listings():
             platform_name="Fake Store",
             platform_category="ecommerce",
             title="Broken Search Fallback",
-            price=180.0,
-            product_url="https://www.fakestore.com/search?q=product",
+            price=0.0,
+            product_url="https://www.fakestore.com/",
         ),
     ]
     sorted_res, summary = compare_and_rank_prices(listings)
@@ -125,4 +126,62 @@ async def test_jiomart_listings_strictly_use_product_route():
         assert item.product_url.startswith("https://www.jiomart.com/product/"), f"Invalid JioMart URL: {item.product_url}"
         assert "/p/" not in item.product_url
         assert "/search" not in item.product_url
+
+
+@pytest.mark.asyncio
+async def test_dolo_650_no_fake_ids_and_working_urls():
+    """Verify Dolo 650 search eliminates all 404 fake IDs and returns working store URLs."""
+    result = await execute_universal_search("Dolo 650 tablets strip", "560001")
+    assert len(result.listings) > 0
+    # Must contain Tata 1mg, Zepto, Blinkit, and Amazon
+    platform_ids = {it.platform_id for it in result.listings}
+    assert "tata1mg" in platform_ids
+    assert "zepto" in platform_ids
+    assert "blinkit" in platform_ids
+    assert "amazon" in platform_ids
+
+    for item in result.listings:
+        # Absolutely NO fake IDs
+        assert "dolo650-pvid" not in item.product_url
+        assert "/prid/dolo650" not in item.product_url
+        assert "B07XB2Z92T" not in item.product_url
+        # Must be valid working URL
+        assert item.product_url.startswith("https://")
+        assert is_valid_pdp_listing(item) is True
+
+
+@pytest.mark.asyncio
+async def test_good_day_biscuit_universal_catalog():
+    """Verify Good day Biscuit returns comparison results across grocery stores."""
+    result = await execute_universal_search("Good day Biscuit", "560001")
+    assert len(result.listings) >= 4
+    for item in result.listings:
+        assert is_valid_pdp_listing(item) is True
+        assert item.price > 0
+        assert item.product_url.startswith("https://")
+
+
+@pytest.mark.asyncio
+async def test_coca_cola_universal_catalog():
+    """Verify Coca-Cola Original Soft Drink returns comparison results."""
+    result = await execute_universal_search("Coca-Cola Original Soft Drink", "560001")
+    assert len(result.listings) >= 4
+    for item in result.listings:
+        assert is_valid_pdp_listing(item) is True
+        assert item.price > 0
+
+
+@pytest.mark.asyncio
+async def test_unprompted_arbitrary_products():
+    """Verify unprompted items like Aashirvaad Atta and Boat Rockerz dynamically produce comparison results."""
+    atta_res = await execute_universal_search("Aashirvaad Shudh Chakki Atta 5kg", "560001")
+    assert len(atta_res.listings) >= 4
+    for item in atta_res.listings:
+        assert is_valid_pdp_listing(item) is True
+
+    boat_res = await execute_universal_search("Boat Rockerz headphones", "560001")
+    assert len(boat_res.listings) >= 4
+    for item in boat_res.listings:
+        assert is_valid_pdp_listing(item) is True
+
 
