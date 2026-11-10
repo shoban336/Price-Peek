@@ -291,6 +291,39 @@ def clean_store_search_query(query: str) -> str:
     return text
 
 
+def resolve_store_url(platform_id: str, query: str, raw_url: str = None) -> str:
+    """
+    Targeted URL resolver strictly for JioMart and Zepto, preserving
+    all other platform URLs completely untouched.
+    """
+    p_id = platform_id.lower().strip()
+
+    # --- ZEPTO ONLY ---
+    if "zepto" in p_id:
+        # Keep verified PDP links, but discard fake/broken mock IDs
+        if raw_url and raw_url.startswith("http") and not any(fake in raw_url for fake in ["pvid", "prid", "dummy"]):
+            return raw_url
+        clean_query = re.sub(r'[/\\#?&%+]', ' ', query).strip()
+        encoded = urllib.parse.quote_plus(clean_query)
+        # Zepto requires ?query= parameter to load search results directly
+        return f"https://www.zepto.com/search?query={encoded}"
+
+    # --- JIOMART ONLY ---
+    if "jiomart" in p_id:
+        # Keep valid direct product links formatted with /product/
+        if raw_url and "/product/" in raw_url and "search" not in raw_url:
+            if raw_url.startswith("http"):
+                return raw_url
+            return f"https://www.jiomart.com{raw_url}"
+        clean_query = re.sub(r'[/\\#?&%+]', ' ', query).strip()
+        encoded = urllib.parse.quote_plus(f"site:jiomart.com {clean_query}")
+        # Bypasses JioMart's broken /search/ routing and navigates directly to the live item
+        return f"https://www.google.com/search?q={encoded}&btnI=1"
+
+    # --- ALL OTHER PLATFORMS: RETURN AS-IS WITHOUT MODIFICATION ---
+    return raw_url
+
+
 def generate_store_outbound_url(
     platform_id: str,
     query: str,
@@ -303,12 +336,26 @@ def generate_store_outbound_url(
       - Amazon India: https://www.amazon.in/s?k={quote_plus(query)}
       - Flipkart:     https://www.flipkart.com/search?q={quote_plus(query)}
       - Blinkit:      https://blinkit.com/s/?q={quote_plus(query)}
-      - Zepto:        https://www.zepto.com/search?q={quote_plus(query)}
+      - Zepto:        https://www.zepto.com/search?query={quote_plus(query)}
       - BigBasket:    https://www.bigbasket.com/ps/?q={quote_plus(query)}
-      - JioMart:      https://www.jiomart.com/search/{quote(clean_query)}
+      - JioMart:      https://www.google.com/search?q=site:jiomart.com+{quote_plus(query)}&btnI=1
       - Tata 1mg:     https://www.1mg.com/search/all?name={quote_plus(query)}
       - Croma:        https://www.croma.com/searchB?q={quote_plus(query)}
     """
+    pid = platform_id.lower().strip()
+
+    # Apply targeted logic for Zepto & JioMart
+    if "zepto" in pid or "jiomart" in pid:
+        final_url = resolve_store_url(pid, query, verified_pdp_url)
+        clean_q = re.sub(r'[/\\#?&%+]', ' ', query).strip()
+        encoded = urllib.parse.quote_plus(clean_q)
+        if "zepto" in pid:
+            deep = f"zepto://search?query={encoded}" if "search" in final_url else f"zepto://product/{final_url.split('/')[-1]}"
+        else:
+            sku = final_url.split('/')[-1] if "/product/" in final_url else "search"
+            deep = f"jiomart://product/{sku}"
+        return final_url, deep
+
     if verified_pdp_url and isinstance(verified_pdp_url, str) and verified_pdp_url.startswith("http"):
         # Filter out fabricated synthetic IDs like fake ASINs or fake pvids
         is_fake = any(k in verified_pdp_url for k in [
@@ -328,22 +375,14 @@ def generate_store_outbound_url(
     quoted_plus = urllib.parse.quote_plus(clean_q)
     quoted_path = urllib.parse.quote(clean_q)
 
-    pid = platform_id.lower().strip()
     if pid == "amazon":
         return f"https://www.amazon.in/s?k={quoted_plus}", f"amazon://in/search?k={quoted_plus}"
     elif pid == "flipkart":
         return f"https://www.flipkart.com/search?q={quoted_plus}", f"flipkart://search?q={quoted_plus}"
     elif pid == "blinkit":
         return f"https://blinkit.com/s/?q={quoted_plus}", f"grofers://search?q={quoted_plus}"
-    elif pid == "zepto":
-        return f"https://www.zepto.com/search?q={quoted_plus}", f"zepto://search?q={quoted_plus}"
     elif pid == "bigbasket":
         return f"https://www.bigbasket.com/ps/?q={quoted_plus}", f"bigbasket://search?q={quoted_plus}"
-    elif pid == "jiomart":
-        clean_jio = re.sub(r'\b0\.\d+\s*(kg|l|litre|litres|gm|g|ml)\b', '', clean_q, flags=re.IGNORECASE).strip()
-        clean_jio = re.sub(r'\s+', ' ', clean_jio)
-        encoded_jio = urllib.parse.quote(clean_jio or clean_q)
-        return f"https://www.jiomart.com/search/{encoded_jio}", f"jiomart://search/{encoded_jio}"
     elif pid in ["tata1mg", "1mg"]:
         return f"https://www.1mg.com/search/all?name={quoted_plus}", f"tata1mg://search?name={quoted_plus}"
     elif pid == "croma":
