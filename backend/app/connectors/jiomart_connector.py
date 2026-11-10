@@ -8,23 +8,47 @@ from app.connectors.http_client import fetch_page
 from app.schemas.platform_schema import PlatformStatus, PlatformCategory
 
 
+def format_jiomart_product_url(raw_url: Optional[str]) -> str:
+    """
+    Ensures JioMart URLs strictly follow the modern working pattern:
+    https://www.jiomart.com/product/<slug-and-sku>
+    Rejects legacy /p/ paths and search fallbacks.
+    """
+    if not raw_url or not isinstance(raw_url, str):
+        return ""
+
+    url = raw_url.strip()
+
+    # Reject legacy /p/ paths, search routes, and empty paths that cause 404s
+    if "/p/" in url or "/search" in url or "?q=" in url or "&q=" in url:
+        return ""
+
+    # Ensure it follows the modern /product/ pattern
+    if "/product/" in url:
+        if url.startswith("http://") or url.startswith("https://"):
+            return url
+        if url.startswith("/"):
+            return f"https://www.jiomart.com{url}"
+        return f"https://www.jiomart.com/{url}"
+
+    return ""
+
+
 def build_universal_jiomart_url(raw_product_url: Optional[str] = None, product_name: str = "") -> str:
     """
-    Universally generates a valid, working JioMart URL for ANY product.
-    Prioritizes canonical product page URLs (/p/...) and handles search fallbacks
-    without invalid query parameters (?q=) or search-breaking tokens.
+    Universally generates a valid JioMart URL.
+    Prioritizes canonical product page URLs (/product/...) and handles search query
+    routing for connector scraping without invalid query parameters (?q=) or search-breaking tokens.
     """
-    # 1. If a valid, full product page URL is already captured, use it directly
-    if raw_product_url and raw_product_url.startswith("http"):
-        # Ensure it's not an already broken ?q= URL
-        if "search?q=" not in raw_product_url:
-            return raw_product_url
+    # 1. If a product page URL is captured, format via strict modern /product/ pattern
+    if raw_product_url:
+        formatted = format_jiomart_product_url(raw_product_url)
+        if formatted:
+            return formatted
+        if not product_name:
+            return ""
 
-    # 2. If it's a relative path from scraping (e.g. /p/groceries/...), append domain
-    if raw_product_url and raw_product_url.startswith("/"):
-        return f"https://www.jiomart.com{raw_product_url}"
-
-    # 3. Universal query cleaner for search fallback (applies to ALL products)
+    # 2. Universal query cleaner for search fallback (used when scraping search results)
     # Remove decimal normalized units that break JioMart routing (e.g., 0.1kg, 0.5L)
     clean = re.sub(r'\b0\.\d+\s*(kg|l|litre|litres|gm|g|ml)\b', '', product_name, flags=re.IGNORECASE)
     
@@ -37,6 +61,9 @@ def build_universal_jiomart_url(raw_product_url: Optional[str] = None, product_n
     # Fallback to base product name if clean became empty
     if not clean:
         clean = product_name.strip()
+
+    if not clean:
+        return ""
 
     # JioMart uses path-based search routing: /search/<encoded_term> (NEVER ?q=)
     encoded_term = urllib.parse.quote(clean)
@@ -72,7 +99,7 @@ class JioMartConnector(BaseConnector):
             title_node = item.select_one("div.plp-card-details-name, span.clsgetname")
             price_node = item.select_one("span.jm-heading-xxs, span.price")
             orig_price_node = item.select_one("span.jm-body-xxs.line-through, span.mrp")
-            link_node = item.select_one("a[href*='/p/']")
+            link_node = item.select_one("a[href*='/product/']")
             img_node = item.select_one("img")
 
             if title_node and price_node and link_node:
@@ -92,12 +119,16 @@ class JioMartConnector(BaseConnector):
                         orig_price = None
 
                 raw_href = link_node.get("href", "")
-                product_url = build_universal_jiomart_url(raw_product_url=raw_href, product_name=raw_title)
+                product_url = format_jiomart_product_url(raw_href)
+                # Strictly require a verified direct /product/ URL
+                if not product_url:
+                    continue
 
                 discount = None
                 if orig_price and orig_price > price:
                     discount = round(((orig_price - price) / orig_price) * 100, 1)
 
+                sku_part = product_url.split('/')[-1]
                 listings.append(
                     RawProductListing(
                         platform_id=self.platform_id,
@@ -108,7 +139,7 @@ class JioMartConnector(BaseConnector):
                         original_price=orig_price,
                         discount_percent=discount,
                         product_url=product_url,
-                        deep_link_url=f"jiomart://product/{product_url.split('/')[-1]}",
+                        deep_link_url=f"jiomart://product/{sku_part}",
                         image_url=img_node.get("src") if img_node else None,
                         is_live=True,
                         delivery_pin=pin_code,

@@ -35,6 +35,14 @@ def clean_slug_to_query(slug: str) -> str:
         # Skip random hex IDs or tracking tokens like 'itmcf3c7d82f3a97' or 'dp' or 'pd'
         if re.match(r'^(itm[a-f0-9]{8,}|pvid|pid|prid|p_\d+|dp|pd)$', w, re.IGNORECASE):
             continue
+        # Skip numeric SKU IDs like 7533064, 490000073, 590798548
+        if w.isdigit() and len(w) >= 6:
+            continue
+        # Skip short store SKU hashes / prefixes like mffn5q, mffmsl
+        if re.match(r'^(mff[a-z0-9]+|[a-z0-9]{5,8})$', w, re.IGNORECASE) and re.search(r'\d', w) and re.search(r'[a-zA-Z]', w):
+            continue
+        if re.match(r'^mff[a-z0-9]+$', w, re.IGNORECASE):
+            continue
         meaningful_words.append(w)
 
     query = " ".join(meaningful_words).strip()
@@ -162,8 +170,27 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             canonical_url=url
         )
 
-    # 6. JioMart (e.g. jiomart.com/p/groceries/dettol-original-liquid-handwash-refill-750-ml/490001844)
+    # 6. JioMart (e.g. jiomart.com/product/gold-winner-refined-sunflower-oil-1-l-pouch-mffn5q-7533064)
     if "jiomart." in netloc:
+        # Match modern /product/<slug-with-sku>
+        prod_match = re.search(r'/product/([a-zA-Z0-9\-_]+)', path)
+        if prod_match:
+            slug_sku = prod_match.group(1)
+            id_match = re.search(r'(\d{7,})$', slug_sku)
+            item_id = id_match.group(1) if id_match else slug_sku.split('-')[-1]
+            query = clean_slug_to_query(slug_sku) or "JioMart Grocery Item"
+
+            return ResolvedProductURL(
+                is_url=True,
+                platform_id="jiomart",
+                platform_name="JioMart",
+                product_id=item_id,
+                raw_title_slug=slug_sku,
+                clean_query=query,
+                canonical_url=url
+            )
+
+        # Legacy /p/ fallback
         id_match = re.search(r'/(\d{7,})', path)
         item_id = id_match.group(1) if id_match else None
 

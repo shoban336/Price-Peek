@@ -41,6 +41,11 @@ def test_url_resolver_slug_cleaner():
         "bigbasket",
         "Gold Winner"
     ),
+    (
+        "https://www.jiomart.com/product/gold-winner-refined-sunflower-oil-1-l-pouch-mffn5q-7533064",
+        "jiomart",
+        "Gold Winner"
+    ),
 ])
 def test_direct_url_parsing(url, expected_platform, expected_keyword):
     """Verify parse_product_url extracts platform ID and keywords."""

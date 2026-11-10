@@ -58,6 +58,11 @@ def is_valid_pdp_listing(listing: Any) -> bool:
     if any(pattern in url for pattern in search_patterns):
         return False
 
+    # Strictly require modern /product/ URL pattern for JioMart and reject legacy /p/ paths
+    if "jiomart.com" in parsed_url.netloc or "jiomart" in parsed_url.netloc:
+        if "/product/" not in url or "/p/" in url:
+            return False
+
     # Must have a valid positive price
     if price is None:
         return False

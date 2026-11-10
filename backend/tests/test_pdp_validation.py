@@ -12,7 +12,7 @@ def test_is_valid_pdp_listing_accepts_canonical_urls():
         "https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4",
         "https://www.zeptonow.com/pn/gold-winner-refined-sunflower-oil-pouch/pvid/93a89783",
         "https://blinkit.com/prn/gold-winner-sunflower-oil/prid/66192",
-        "https://www.jiomart.com/p/groceries/dettol-original-liquid-handwash-refill-750-ml/490001844",
+        "https://www.jiomart.com/product/dettol-original-liquid-handwash-200-ml-mffmsl-7504743",
         "https://www.bigbasket.com/pd/274141/gold-winner-refined-sunflower-oil-1-l-pouch/",
         "https://www.croma.com/apple-iphone-15-128gb-black-/p/300652",
         "https://www.1mg.com/drugs/dolo-650-tablet-41639",
@@ -36,6 +36,8 @@ def test_is_valid_pdp_listing_rejects_search_and_homepages():
         "https://www.flipkart.com/search?q=oil",
         "https://www.jiomart.com/search/oil",
         "https://www.jiomart.com/search?q=oil",
+        "https://www.jiomart.com/p/groceries/dettol-original-liquid-handwash-refill-750-ml/490001844",
+        "https://www.jiomart.com/p/electronics/apple-iphone-15/590798548",
         "https://www.bigbasket.com/ps/?q=oil",
         "https://blinkit.com/s/?q=oil",
         "https://www.zeptonow.com/search?q=oil",
@@ -111,3 +113,16 @@ async def test_search_results_contain_only_authentic_pdp_links():
         assert "?q=" not in item.product_url.lower()
         assert "?k=" not in item.product_url.lower()
         assert "/s/?q=" not in item.product_url.lower()
+
+
+@pytest.mark.asyncio
+async def test_jiomart_listings_strictly_use_product_route():
+    """Verify any JioMart listings returned by search use modern /product/ URL pattern and never /p/."""
+    result = await execute_universal_search("Gold Winner Sunflower Oil 1L", "560001")
+    jiomart_items = [it for it in result.listings if it.platform_id == "jiomart"]
+    assert len(jiomart_items) > 0, "Expected at least one JioMart item"
+    for item in jiomart_items:
+        assert item.product_url.startswith("https://www.jiomart.com/product/"), f"Invalid JioMart URL: {item.product_url}"
+        assert "/p/" not in item.product_url
+        assert "/search" not in item.product_url
+

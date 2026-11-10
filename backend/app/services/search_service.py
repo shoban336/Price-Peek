@@ -19,7 +19,7 @@ from app.comparison.comparator import compare_and_rank_prices, is_valid_pdp_list
 from app.connectors.base_connector import RawProductListing
 from app.services.autocomplete_service import resolve_product_thumbnail
 from app.intelligence.url_resolver import parse_product_url
-from app.connectors.jiomart_connector import build_universal_jiomart_url
+from app.connectors.jiomart_connector import build_universal_jiomart_url, format_jiomart_product_url
 
 
 def _slugify(text: str) -> str:
@@ -83,8 +83,8 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
         elif platform_id == "jiomart":
             return (
-                "https://www.jiomart.com/p/groceries/gold-winner-refined-sunflower-oil-1-l-pouch/490001392",
-                "jiomart://product/490001392"
+                "https://www.jiomart.com/product/gold-winner-refined-sunflower-oil-1-l-pouch-mffn5q-7533064",
+                "jiomart://product/7533064"
             )
 
     if any(k in lower_query for k in ["dettol", "detol"]) and any(k in lower_query for k in ["handwash", "hand wash", "liquid"]):
@@ -100,8 +100,8 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
         elif platform_id == "jiomart":
             return (
-                "https://www.jiomart.com/p/groceries/dettol-original-liquid-handwash-refill-750-ml/490001844",
-                "jiomart://product/490001844"
+                "https://www.jiomart.com/product/dettol-original-liquid-handwash-200-ml-mffmsl-7504743",
+                "jiomart://product/7504743"
             )
         elif platform_id == "zepto":
             return (
@@ -137,7 +137,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
         elif platform_id == "jiomart":
             return (
-                "https://www.jiomart.com/p/groceries/amul-butter-100-g-carton/490000073",
+                "https://www.jiomart.com/product/amul-butter-pasteurised-100-g-carton-490000073",
                 "jiomart://product/490000073"
             )
         elif platform_id == "amazon":
@@ -159,7 +159,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
         elif platform_id == "croma":
             return "https://www.croma.com/apple-iphone-15-128gb-black-/p/300652", "croma://product/300652"
         elif platform_id == "jiomart":
-            return "https://www.jiomart.com/p/electronics/apple-iphone-15-128-gb-black/590798548", "jiomart://product/590798548"
+            return "https://www.jiomart.com/product/apple-iphone-15-128-gb-black-590798548", "jiomart://product/590798548"
 
     if "dove" in lower_query and "shampoo" in lower_query:
         if platform_id == "amazon":
@@ -171,7 +171,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
         elif platform_id == "blinkit":
             return "https://blinkit.com/prn/dove-intense-repair-shampoo/prid/98765", "grofers://product/98765"
         elif platform_id == "jiomart":
-            return "https://www.jiomart.com/p/groceries/dove-intense-repair-shampoo-650-ml/490002145", "jiomart://product/490002145"
+            return "https://www.jiomart.com/product/dove-intense-repair-shampoo-650-ml-490002145", "jiomart://product/490002145"
         elif platform_id == "nykaa":
             return "https://www.nykaa.com/dove-intense-repair-shampoo/p/12345", "nykaa://product/12345"
 
@@ -229,7 +229,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
         elif platform_id == "bigbasket":
             return "https://www.bigbasket.com/pd/306926/amul-homogenised-toned-milk-500-ml-carton/", "bigbasket://product/306926"
         elif platform_id == "jiomart":
-            return "https://www.jiomart.com/p/groceries/amul-taaza-toned-milk-500-ml-tetra-pack/490001795", "jiomart://product/490001795"
+            return "https://www.jiomart.com/product/amul-taaza-toned-milk-500-ml-tetra-pack-490001795", "jiomart://product/490001795"
 
     if any(k in lower_query for k in ["chips", "lays", "potato chips"]):
         if platform_id == "blinkit":
@@ -239,7 +239,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
         elif platform_id == "bigbasket":
             return "https://www.bigbasket.com/pd/102798/lays-potato-chips-indias-magic-masala-50-g/", "bigbasket://product/102798"
         elif platform_id == "jiomart":
-            return "https://www.jiomart.com/p/groceries/lay-s-india-s-magic-masala-chips-50-g/490001552", "jiomart://product/490001552"
+            return "https://www.jiomart.com/product/lay-s-india-s-magic-masala-chips-50-g-490001552", "jiomart://product/490001552"
         elif platform_id == "amazon":
             return "https://www.amazon.in/dp/B00V4U675K", "amazon://in/dp/B00V4U675K"
         elif platform_id == "flipkart":
@@ -253,7 +253,7 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
         elif platform_id == "bigbasket":
             return "https://www.bigbasket.com/pd/10000200/fresho-tomato-hybrid-500-g/", "bigbasket://product/10000200"
         elif platform_id == "jiomart":
-            return "https://www.jiomart.com/p/groceries/tomato-hybrid-500-g/490000001", "jiomart://product/490000001"
+            return "https://www.jiomart.com/product/tomato-hybrid-500-g-490000001", "jiomart://product/490000001"
 
     # Strict PDP policy: If this platform does not have a verified direct canonical PDP,
     # return (None, None). Never return synthetic search URLs (/search/, ?q=, /s/?q=).
