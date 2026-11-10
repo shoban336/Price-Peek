@@ -305,20 +305,22 @@ def resolve_store_url(platform_id: str, query: str, raw_url: str = None) -> str:
             return raw_url
         clean_query = re.sub(r'[/\\#?&%+]', ' ', query).strip()
         encoded = urllib.parse.quote_plus(clean_query)
-        # Zepto requires ?query= parameter to load search results directly
-        return f"https://www.zepto.com/search?query={encoded}"
+        # Pass both q and query parameters so search executes immediately on load without requiring Enter
+        return f"https://www.zepto.com/search?q={encoded}&query={encoded}"
 
     # --- JIOMART ONLY ---
     if "jiomart" in p_id:
         # Keep valid direct product links formatted with /product/
-        if raw_url and "/product/" in raw_url and "search" not in raw_url:
+        if raw_url and "/product/" in raw_url and "search" not in raw_url and "google.com" not in raw_url:
             if raw_url.startswith("http"):
                 return raw_url
             return f"https://www.jiomart.com{raw_url}"
         clean_query = re.sub(r'[/\\#?&%+]', ' ', query).strip()
-        encoded = urllib.parse.quote_plus(f"site:jiomart.com {clean_query}")
-        # Bypasses JioMart's broken /search/ routing and navigates directly to the live item
-        return f"https://www.google.com/search?q={encoded}&btnI=1"
+        clean_query = re.sub(r'\b0\.\d+\s*(kg|l|litre|litres|gm|g|ml)\b', '', clean_query, flags=re.IGNORECASE).strip()
+        clean_query = re.sub(r'\s+', ' ', clean_query)
+        encoded = urllib.parse.quote_plus(clean_query)
+        # Direct official JioMart search route: zero redirect notice, loads product results directly
+        return f"https://www.jiomart.com/products/?q={encoded}"
 
     # --- ALL OTHER PLATFORMS: RETURN AS-IS WITHOUT MODIFICATION ---
     return raw_url
@@ -336,9 +338,9 @@ def generate_store_outbound_url(
       - Amazon India: https://www.amazon.in/s?k={quote_plus(query)}
       - Flipkart:     https://www.flipkart.com/search?q={quote_plus(query)}
       - Blinkit:      https://blinkit.com/s/?q={quote_plus(query)}
-      - Zepto:        https://www.zepto.com/search?query={quote_plus(query)}
+      - Zepto:        https://www.zepto.com/search?q={quote_plus(query)}&query={quote_plus(query)}
       - BigBasket:    https://www.bigbasket.com/ps/?q={quote_plus(query)}
-      - JioMart:      https://www.google.com/search?q=site:jiomart.com+{quote_plus(query)}&btnI=1
+      - JioMart:      https://www.jiomart.com/products/?q={quote_plus(query)}
       - Tata 1mg:     https://www.1mg.com/search/all?name={quote_plus(query)}
       - Croma:        https://www.croma.com/searchB?q={quote_plus(query)}
     """
