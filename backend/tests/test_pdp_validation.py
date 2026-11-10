@@ -141,10 +141,13 @@ async def test_dolo_650_no_fake_ids_and_working_urls():
     assert "amazon" in platform_ids
 
     for item in result.listings:
-        # Absolutely NO fake IDs
+        # Absolutely NO fake IDs or obsolete 404 paths
         assert "dolo650-pvid" not in item.product_url
         assert "/prid/dolo650" not in item.product_url
         assert "B07XB2Z92T" not in item.product_url
+        assert "41639" not in item.product_url
+        assert "650tablets" not in item.product_url
+        assert "strip" not in item.product_url.lower() or "drugs" in item.product_url
         # Must be valid working URL
         assert item.product_url.startswith("https://")
         assert is_valid_pdp_listing(item) is True

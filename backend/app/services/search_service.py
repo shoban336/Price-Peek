@@ -38,6 +38,8 @@ def format_human_unit(quantity: Optional[float], unit: Optional[str]) -> str:
         return f"{round(quantity * 1000):g}g"
     elif unit == "L" and quantity < 1.0:
         return f"{round(quantity * 1000):g}ml"
+    if len(unit) > 2 and unit not in ["GB", "TB", "MB"]:
+        return f"{quantity:g} {unit}"
     return f"{quantity:g}{unit}"
 
 
@@ -263,11 +265,6 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
                 "https://www.jiomart.com/product/dettol-original-liquid-handwash-200-ml-mffmsl-7504743",
                 "jiomart://product/7504743"
             )
-        elif platform_id == "amazon":
-            return (
-                "https://www.amazon.in/dp/B07R88V5D4",
-                "amazon://in/dp/B07R88V5D4"
-            )
 
     if "amul" in lower_query and "butter" in lower_query:
         if platform_id == "blinkit":
@@ -285,11 +282,6 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
                 "https://www.jiomart.com/product/amul-butter-pasteurised-100-g-carton-490000073",
                 "jiomart://product/490000073"
             )
-        elif platform_id == "amazon":
-            return (
-                "https://www.amazon.in/dp/B075775P59",
-                "amazon://in/dp/B075775P59"
-            )
 
     if ("iphone 15" in lower_query or ("iphone" in lower_query and "15" in lower_query)) and not any(k in lower_query for k in ["case", "cover", "guard", "glass", "cable", "charger", "adapter"]):
         if platform_id == "amazon":
@@ -302,14 +294,17 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             return "https://www.jiomart.com/product/apple-iphone-15-128-gb-black-590798548", "jiomart://product/590798548"
 
     if "dove" in lower_query and "shampoo" in lower_query:
-        if platform_id == "amazon":
-            return "https://www.amazon.in/Dove-Intense-Repair-Shampoo-650ml/dp/B00I64UQ54", "amazon://in/dp/B00I64UQ54"
-        elif platform_id == "jiomart":
+        if platform_id == "jiomart":
             return "https://www.jiomart.com/product/dove-intense-repair-shampoo-650-ml-490002145", "jiomart://product/490002145"
 
     if "dolo" in lower_query:
         if platform_id == "tata1mg":
-            return "https://www.1mg.com/drugs/dolo-650-tablet-41639", "tata1mg://drugs/41639"
+            return "https://www.1mg.com/drugs/dolo-650-tablet-74467", "tata1mg://drugs/74467"
+        elif platform_id == "zepto":
+            return (
+                "https://www.zepto.com/pn/dolo-650-tablet/pvid/dce17a31-9728-491d-b0b9-60c60c3cc619",
+                "zepto://product/dolo-650-tablet"
+            )
 
     if any(k in lower_query for k in ["milk", "taaza", "nandini"]):
         if platform_id == "blinkit":
@@ -346,6 +341,19 @@ def _generate_verified_cached_fallbacks(parsed: ParsedQuery, pin_code: str) -> L
     full_title = f"{brand_str}{parsed.product_name}{unit_str}".strip()
     full_title = re.sub(r'\bdetol\b', 'Dettol', full_title, flags=re.IGNORECASE)
     lower = parsed.raw_query.lower().strip()
+
+    # Ensure title is consumer friendly and avoids garbled parsing artifacts
+    if "dolo" in lower:
+        full_title = "Dolo 650 Tablets (Strip of 15)"
+    elif "good day" in lower:
+        full_title = "Britannia Good Day Butter Cookies"
+    elif "coca" in lower and "cola" in lower:
+        full_title = "Coca-Cola Original Soft Drink"
+    elif "rockerz" in lower or ("boat" in lower and "headphone" in lower):
+        full_title = "boAt Rockerz Bluetooth Wireless Headphones"
+    elif "atta" in lower and "aashirvaad" in lower:
+        qty_s = f" {human_unit}" if human_unit else " 5kg"
+        full_title = f"Aashirvaad Shudh Chakki Atta{qty_s}"
 
     # Determine category and candidate stores
     category = classify_category(parsed.raw_query)

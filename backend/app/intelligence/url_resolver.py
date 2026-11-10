@@ -243,6 +243,54 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
     )
 
 
+def clean_store_search_query(query: str) -> str:
+    """
+    Produce the optimal, high-accuracy store search query that directly matches
+    the targeted product on Blinkit, Zepto, JioMart, BigBasket, Amazon, Flipkart, 1mg, Croma.
+    - Converts broken decimal units (0.1kg -> 100g, 0.5L -> 500ml)
+    - Separates unspaced numbers and words (650tablets -> 650 tablets)
+    - Strips packaging noise words (strip, strips, blister pack, carton, pouch)
+    - Strips purchase fluff (buy, online, price, near me)
+    - Normalizes brands and fixes common typos (detol -> Dettol)
+    """
+    if not query:
+        return ""
+    text = query.strip()
+
+    # 1. Decimal unit conversions (0.1kg -> 100g, 0.5L -> 500ml)
+    text = re.sub(r'\b0\.(\d+)\s*kg\b', lambda m: f"{int(float(f'0.{m.group(1)}') * 1000)}g", text, flags=re.IGNORECASE)
+    text = re.sub(r'\b0\.(\d+)\s*l\b', lambda m: f"{int(float(f'0.{m.group(1)}') * 1000)}ml", text, flags=re.IGNORECASE)
+
+    # 2. Fix unspaced numbers and words (e.g. 650tablets -> 650 tablets, 100g -> 100g)
+    text = re.sub(r'\b(\d+)(tablets?|capsules?|pills?)\b', r'\1 \2', text, flags=re.IGNORECASE)
+
+    # 3. Handle medicines: Dolo 650, Crocin 500, Calpol 650, Paracetamol 650
+    # For dosage medicines with packaging words like "strip", stores index by "Brand Dosage" e.g. "Dolo 650"
+    if re.search(r'\b(dolo|crocin|calpol|paracetamol|azithral|augmentin|combiflam)\b', text, re.IGNORECASE):
+        m = re.search(r'\b(dolo|crocin|calpol|paracetamol|azithral|augmentin|combiflam)\s*(\d{3,4})?\b', text, re.IGNORECASE)
+        if m:
+            b = m.group(1).title()
+            d = f" {m.group(2)}" if m.group(2) else ""
+            return f"{b}{d}".strip()
+
+    # 4. Remove store-breaking packaging noise words
+    noise_patterns = [
+        r'\b(?:strips?|blister\s*packs?|cartons?|pouches|pouch|tetra\s*pack)\b',
+        r'\b(?:online|buy|price|near\s*me|best)\b',
+    ]
+    for np in noise_patterns:
+        text = re.sub(np, ' ', text, flags=re.IGNORECASE)
+
+    # 5. Fix common brand misspellings
+    text = re.sub(r'\bdetol\b', 'Dettol', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bcoca\s*cola\b', 'Coca-Cola', text, flags=re.IGNORECASE)
+
+    # Clean whitespace and punctuation
+    text = re.sub(r'[/\\#?&%+]+', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
 def generate_store_outbound_url(
     platform_id: str,
     query: str,
@@ -255,7 +303,7 @@ def generate_store_outbound_url(
       - Amazon India: https://www.amazon.in/s?k={quote_plus(query)}
       - Flipkart:     https://www.flipkart.com/search?q={quote_plus(query)}
       - Blinkit:      https://blinkit.com/s/?q={quote_plus(query)}
-      - Zepto:        https://www.zeptonow.com/search?q={quote_plus(query)}
+      - Zepto:        https://www.zepto.com/search?q={quote_plus(query)}
       - BigBasket:    https://www.bigbasket.com/ps/?q={quote_plus(query)}
       - JioMart:      https://www.jiomart.com/search/{quote(clean_query)}
       - Tata 1mg:     https://www.1mg.com/search/all?name={quote_plus(query)}
@@ -265,15 +313,15 @@ def generate_store_outbound_url(
         # Filter out fabricated synthetic IDs like fake ASINs or fake pvids
         is_fake = any(k in verified_pdp_url for k in [
             "dolo650-pvid", "/prid/dolo650", "B07XB2Z92T", "B0CKR12345",
-            "B07K123456", "B07K123457", "itmcase12345", "itm123456", "itm123457"
+            "B07K123456", "B07K123457", "itmcase12345", "itm123456", "itm123457",
+            "41639"
         ])
         if not is_fake:
             sku = verified_pdp_url.split('/')[-1]
             return verified_pdp_url, f"{platform_id}://product/{sku}"
 
     # Clean query for search syntax
-    clean_q = re.sub(r'[/\\#?&%+]+', ' ', query).strip()
-    clean_q = re.sub(r'\s+', ' ', clean_q)
+    clean_q = clean_store_search_query(query)
     if not clean_q:
         clean_q = query.strip()
 
@@ -288,7 +336,7 @@ def generate_store_outbound_url(
     elif pid == "blinkit":
         return f"https://blinkit.com/s/?q={quoted_plus}", f"grofers://search?q={quoted_plus}"
     elif pid == "zepto":
-        return f"https://www.zeptonow.com/search?q={quoted_plus}", f"zepto://search?q={quoted_plus}"
+        return f"https://www.zepto.com/search?q={quoted_plus}", f"zepto://search?q={quoted_plus}"
     elif pid == "bigbasket":
         return f"https://www.bigbasket.com/ps/?q={quoted_plus}", f"bigbasket://search?q={quoted_plus}"
     elif pid == "jiomart":

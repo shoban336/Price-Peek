@@ -98,8 +98,11 @@ def parse_and_normalize_unit(text: str) -> Optional[NormalizedQuantity]:
         if num_val and unit_val:
             clean_unit = unit_val.lower().strip()
             if clean_unit in UNIT_CONVERSION_MAP:
-                canonical, multiplier = UNIT_CONVERSION_MAP[clean_unit]
                 raw_number = float(num_val)
+                # Differentiate dosage strength (e.g. 500/650 in Dolo 650) from packaging count of tablets
+                if clean_unit in ['tablets', 'capsules'] and raw_number >= 50:
+                    continue
+                canonical, multiplier = UNIT_CONVERSION_MAP[clean_unit]
                 normalized = round(raw_number * multiplier, 4)
                 return NormalizedQuantity(
                     normalized_value=normalized,
