@@ -14,6 +14,14 @@ class ParsedQuery(BaseModel):
     normalized_quantity: Optional[float] = None
     normalized_unit: Optional[str] = None
     variant: Optional[str] = None
+    locked_color: Optional[str] = None
+    locked_storage: Optional[str] = None
+    locked_ram: Optional[str] = None
+    locked_pack: Optional[int] = None
+    locked_variant_tags: List[str] = []
+    is_url_query: bool = False
+    source_platform: Optional[str] = None
+    canonical_url: Optional[str] = None
 
 
 class ProductListing(BaseModel):
@@ -55,7 +63,7 @@ class ComparisonSummary(BaseModel):
 
 class SearchRequest(BaseModel):
     """Request payload for universal product price search."""
-    query: str = Field(..., min_length=1, max_length=200, description="Product search string")
+    query: str = Field(..., min_length=1, max_length=2048, description="Product search string or direct product URL")
     pin_code: Optional[str] = Field(None, description="6-digit Indian Postal Delivery Code")
     platforms: Optional[List[str]] = Field(None, description="Optional filter of specific platform IDs")
     sort_by: Optional[str] = Field("price_asc", description="Sorting criteria: price_asc, price_desc, discount_desc, rating_desc")
@@ -69,6 +77,7 @@ class SearchResponse(BaseModel):
     summary: ComparisonSummary
     listings: List[ProductListing] = []
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    resolved_url_info: Optional[Dict[str, Any]] = None
 
 
 class AutocompleteItem(BaseModel):

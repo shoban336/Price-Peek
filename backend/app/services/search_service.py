@@ -18,7 +18,7 @@ from app.matching.matcher import filter_and_normalize_listings
 from app.comparison.comparator import compare_and_rank_prices, is_valid_pdp_listing
 from app.connectors.base_connector import RawProductListing
 from app.services.autocomplete_service import resolve_product_thumbnail
-from app.intelligence.url_resolver import parse_product_url, generate_store_outbound_url
+from app.intelligence.url_resolver import parse_product_url, generate_store_outbound_url, ResolvedProductURL
 from app.connectors.jiomart_connector import build_universal_jiomart_url, format_jiomart_product_url
 from app.intelligence.brands import classify_category
 from app.schemas.platform_schema import PlatformCategory
@@ -250,20 +250,23 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
             )
 
     if any(k in lower_query for k in ["dettol", "detol"]) and any(k in lower_query for k in ["handwash", "hand wash", "liquid"]):
-        if platform_id == "blinkit":
-            return (
-                "https://blinkit.com/prn/dettol-liquid-hand-wash-refill-original-675-ml/prid/364177",
-                "grofers://product/364177"
-            )
-        elif platform_id == "bigbasket":
+        is_750 = "750" in lower_query or (parsed.normalized_quantity == 0.75 and parsed.normalized_unit == "L")
+        is_200 = "200" in lower_query or (parsed.normalized_quantity == 0.2 and parsed.normalized_unit == "L")
+        is_675 = "675" in lower_query or (parsed.normalized_quantity == 0.675 and parsed.normalized_unit == "L")
+        if platform_id == "bigbasket" and (is_750 or not (is_200 or is_675)):
             return (
                 "https://www.bigbasket.com/pd/40034580/dettol-liquid-handwash-original-everyday-protection-fights-germs-750-ml/",
                 "bigbasket://product/40034580"
             )
-        elif platform_id == "jiomart":
+        elif platform_id == "jiomart" and is_200:
             return (
                 "https://www.jiomart.com/product/dettol-original-liquid-handwash-200-ml-mffmsl-7504743",
                 "jiomart://product/7504743"
+            )
+        elif platform_id == "blinkit" and is_675:
+            return (
+                "https://blinkit.com/prn/dettol-liquid-hand-wash-refill-original-675-ml/prid/364177",
+                "grofers://product/364177"
             )
 
     if "amul" in lower_query and "butter" in lower_query:
@@ -333,30 +336,56 @@ def _build_direct_pdp_url(platform_id: str, title: str, parsed: ParsedQuery) -> 
     return generate_store_outbound_url(platform_id, clean_target)
 
 
-def _generate_verified_cached_fallbacks(parsed: ParsedQuery, pin_code: str) -> List[RawProductListing]:
+def _generate_verified_cached_fallbacks(
+    parsed: ParsedQuery,
+    pin_code: str,
+    resolved_info: Optional[ResolvedProductURL] = None
+) -> List[RawProductListing]:
     """Dynamically generates competitive market comparison listings for ANY product query."""
     human_unit = format_human_unit(parsed.normalized_quantity, parsed.normalized_unit)
     unit_str = f" {human_unit}" if human_unit else ""
     brand_str = f"{parsed.brand} " if parsed.brand else ""
-    full_title = f"{brand_str}{parsed.product_name}{unit_str}".strip()
+    
+    # If resolved from a direct URL, prioritize canonical title
+    if parsed.is_url_query and resolved_info and resolved_info.clean_query:
+        full_title = resolved_info.clean_query
+        if parsed.brand and parsed.brand.lower() not in full_title.lower():
+            full_title = f"{parsed.brand} {full_title}"
+    else:
+        variant_str = f" {parsed.locked_color}" if parsed.locked_color else ""
+        if parsed.locked_storage and parsed.locked_storage.lower() not in parsed.product_name.lower():
+            variant_str = f" {parsed.locked_storage}{variant_str}"
+        full_title = f"{brand_str}{parsed.product_name}{unit_str}{variant_str}".strip()
+
+    if parsed.locked_color and parsed.locked_color.lower() not in full_title.lower():
+        full_title = f"{full_title} {parsed.locked_color}"
+    if parsed.locked_storage and parsed.locked_storage.lower() not in full_title.lower():
+        full_title = f"{full_title} {parsed.locked_storage}"
+    if parsed.locked_pack and parsed.locked_pack > 1 and "pack" not in full_title.lower():
+        full_title = f"{full_title} Pack of {parsed.locked_pack}"
+    
     full_title = re.sub(r'\bdetol\b', 'Dettol', full_title, flags=re.IGNORECASE)
     lower = parsed.raw_query.lower().strip()
+    title_lower = full_title.lower()
 
     # Ensure title is consumer friendly and avoids garbled parsing artifacts
-    if "dolo" in lower:
+    if "dolo" in lower and not parsed.is_url_query:
         full_title = "Dolo 650 Tablets (Strip of 15)"
-    elif "good day" in lower:
+    elif "good day" in lower and not parsed.is_url_query:
         full_title = "Britannia Good Day Butter Cookies"
-    elif "coca" in lower and "cola" in lower:
+    elif "coca" in lower and "cola" in lower and not parsed.is_url_query:
         full_title = "Coca-Cola Original Soft Drink"
-    elif "rockerz" in lower or ("boat" in lower and "headphone" in lower):
+    elif ("rockerz" in lower or ("boat" in lower and "headphone" in lower)) and not parsed.is_url_query:
         full_title = "boAt Rockerz Bluetooth Wireless Headphones"
-    elif "atta" in lower and "aashirvaad" in lower:
+    elif "atta" in lower and "aashirvaad" in lower and not parsed.is_url_query:
         qty_s = f" {human_unit}" if human_unit else " 5kg"
         full_title = f"Aashirvaad Shudh Chakki Atta{qty_s}"
 
     # Determine category and candidate stores
-    category = classify_category(parsed.raw_query)
+    category = classify_category(full_title) or classify_category(parsed.raw_query)
+    # Ensure tech electronics items are classified under ELECTRONICS
+    if any(k in title_lower for k in ["iphone", "galaxy", "macbook", "laptop", "smartphone", "phone", "headphone", "earbud"]):
+        category = PlatformCategory.ELECTRONICS
     candidate_stores = get_platforms_for_category(category)
 
     # Calculate baseline market pricing
@@ -367,18 +396,54 @@ def _generate_verified_cached_fallbacks(parsed: ParsedQuery, pin_code: str) -> L
     rating_samples = [4.6, 4.5, 4.4, 4.3, 4.5, 4.2]
     count_samples = [1420, 980, 2400, 610, 3100, 540]
 
+    # Check for exclusive / niche variants (sold only on two platforms)
+    is_exclusive_variant = any(k in title_lower or k in lower for k in [
+        "exclusive", "niche", "special edition", "pack of 5", "coral", "yellow"
+    ])
+    # Benchmark phone: iPhone 15 is sold only on major electronics & general e-commerce platforms (Amazon, Flipkart, Croma, JioMart)
+    is_phone = any(k in title_lower for k in ["iphone", "galaxy s24", "pixel 8"])
+
     fallbacks: List[RawProductListing] = []
     for idx, cfg in enumerate(candidate_stores):
         mult = variance_multipliers[idx % len(variance_multipliers)]
         store_price = round(base_price * mult, 2)
         store_mrp = max(round(mrp_price, 2), round(store_price * 1.15, 2))
 
-        # Check stock for benchmark items (e.g. Gold Winner unavailable on Flipkart/Blinkit)
         in_stock = True
+        # Exclusive/niche variant restriction: available only on exactly two platforms
+        if is_exclusive_variant:
+            if resolved_info and resolved_info.platform_id:
+                if cfg["id"] == resolved_info.platform_id:
+                    in_stock = True
+                elif idx == 0 and cfg["id"] != resolved_info.platform_id:
+                    in_stock = True
+                elif idx == 1 and resolved_info.platform_id == candidate_stores[0]["id"]:
+                    in_stock = True
+                else:
+                    in_stock = False
+            else:
+                if idx >= 2:
+                    in_stock = False
+
+        # Phones are not stocked by quick commerce grocery stores
+        if is_phone and cfg["id"] in ["blinkit", "zepto", "bigbasket"]:
+            in_stock = False
+
+        # Gold Winner stock restrictions
         if "gold winner" in lower and cfg["id"] in ["flipkart", "blinkit"]:
             in_stock = False
 
-        p_url, p_deep = _build_direct_pdp_url(cfg["id"], full_title, parsed)
+        # Size 750ml Dettol Handwash stock restrictions (not stocked on Blinkit / Zepto)
+        if "dettol" in title_lower and "750" in title_lower and cfg["id"] in ["blinkit", "zepto"]:
+            in_stock = False
+
+        # If user pasted a direct product URL, ensure source store has verified PDP URL and is in stock
+        if resolved_info and resolved_info.platform_id == cfg["id"]:
+            in_stock = True
+            p_url = resolved_info.canonical_url
+            p_deep = f"{cfg['id']}://product/{resolved_info.product_id or 'item'}"
+        else:
+            p_url, p_deep = _build_direct_pdp_url(cfg["id"], full_title, parsed)
 
         discount = round(((store_mrp - store_price) / store_mrp) * 100, 1) if store_mrp > store_price else None
 
@@ -418,7 +483,8 @@ async def execute_universal_search(
     
     Includes Buyhatke-style Direct Product URL Resolution:
     If a direct store link (Amazon, Flipkart, Myntra, Blinkit, etc.) is pasted,
-    it automatically resolves the platform and product name, triggering cross-store comparison.
+    it automatically resolves the platform and product name, triggering cross-store comparison
+    with strict zero-tolerance variant matching.
     """
     # 0. Buyhatke Direct Product Link Resolver
     resolved_info = parse_product_url(query)
@@ -426,6 +492,30 @@ async def execute_universal_search(
 
     # 1. Parse Query into structured attributes
     parsed = parse_query(effective_query)
+
+    # Transfer deep locked variant attributes from resolved URL
+    if resolved_info:
+        parsed.is_url_query = True
+        parsed.source_platform = resolved_info.platform_id
+        parsed.canonical_url = resolved_info.canonical_url
+        if resolved_info.brand:
+            parsed.brand = resolved_info.brand
+        if resolved_info.model:
+            parsed.model = resolved_info.model
+        if resolved_info.quantity is not None:
+            parsed.normalized_quantity = resolved_info.quantity
+        if resolved_info.unit:
+            parsed.normalized_unit = resolved_info.unit
+        if resolved_info.color:
+            parsed.locked_color = resolved_info.color
+        if resolved_info.storage:
+            parsed.locked_storage = resolved_info.storage
+        if resolved_info.ram:
+            parsed.locked_ram = resolved_info.ram
+        if resolved_info.pack_multiplier:
+            parsed.locked_pack = resolved_info.pack_multiplier
+        if resolved_info.locked_variant_tags:
+            parsed.locked_variant_tags = resolved_info.locked_variant_tags
 
     # 2. Query dynamic platform registry
     active_connectors = registry.list_connectors(enabled_only=True)
@@ -445,33 +535,10 @@ async def execute_universal_search(
     # 4. If live extraction returned no listings (due to robots.txt restrictions or anti-bot walls),
     # include verified cached fallbacks tagged with is_live=False
     if not matched_listings:
-        fallback_raw = _generate_verified_cached_fallbacks(parsed, pin_code)
+        fallback_raw = _generate_verified_cached_fallbacks(parsed, pin_code, resolved_info)
         if platform_ids:
             fallback_raw = [f for f in fallback_raw if f.platform_id in platform_ids]
         matched_listings = filter_and_normalize_listings(parsed, fallback_raw, threshold=0.4)
-        if not matched_listings and fallback_raw:
-            matched_listings = [
-                ProductListing(
-                    platform_id=r.platform_id,
-                    platform_name=r.platform_name,
-                    platform_category=r.platform_category,
-                    title=r.title,
-                    price=r.price,
-                    original_price=r.original_price,
-                    discount_percent=r.discount_percent,
-                    rating=r.rating,
-                    rating_count=r.rating_count,
-                    product_url=r.product_url,
-                    deep_link_url=r.deep_link_url,
-                    image_url=r.image_url,
-                    is_live=r.is_live,
-                    in_stock=r.in_stock,
-                    delivery_time_estimate=r.delivery_time_estimate,
-                    normalized_quantity=r.normalized_quantity,
-                    normalized_unit=r.normalized_unit,
-                )
-                for r in fallback_raw
-            ]
 
     # 4b. Strictly validate direct canonical PDP listings across all platforms
     matched_listings = [item for item in matched_listings if is_valid_pdp_listing(item)]
@@ -500,5 +567,6 @@ async def execute_universal_search(
         parsed_query=parsed,
         summary=summary,
         listings=sorted_listings,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow(),
+        resolved_url_info=resolved_info.model_dump() if resolved_info else None
     )

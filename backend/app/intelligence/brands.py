@@ -74,6 +74,8 @@ CATEGORY_KEYWORDS = {
 
 
 BRAND_CORRECTIONS = {
+    "coca cola": "Coca-Cola",
+    "coke": "Coca-Cola",
     "detol": "Dettol",
     "iphne": "Apple",
     "nik": "Nike",

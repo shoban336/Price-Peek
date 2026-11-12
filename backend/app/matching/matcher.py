@@ -28,13 +28,21 @@ def matches_product(
 ) -> bool:
     """Validate whether an extracted listing matches the target user query.
     
-    Strict rules enforced:
-    1. Quantity & Unit dimension must match (e.g. 1000ml matches 1L, but strictly rejects 500ml or 5L).
-    2. Specific variants (e.g. 128GB vs 256GB) must not collide.
-    3. Distinct brands must not mismatch.
-    4. Text similarity score must meet minimum threshold.
+    Strict zero-tolerance rules enforced:
+    1. Quantity & Unit dimension must match (e.g. 1000ml matches 1L, but strictly rejects 500ml, 750ml, or 5L).
+    2. Specific variants (e.g. 128GB vs 256GB, Black vs Blue/Pink) must not collide.
+    3. Distinct models (e.g. iPhone 15 vs iPhone 15 Pro / iPhone 15 Plus) must not collide.
+    4. Pack multipliers (e.g. Pack of 1 vs Pack of 2 or combo bundles) must not collide.
+    5. Distinct brands must not mismatch.
+    6. Listing must be in stock.
+    7. Text similarity score must meet minimum threshold.
     """
+    # Reject out of stock items immediately
+    if not listing.in_stock:
+        return False
+
     listing_title = listing.title.strip()
+    listing_variants = extract_variants(listing_title)
 
     # 1. Normalize listing unit if not pre-populated
     listing_qty = listing.normalized_quantity
@@ -45,37 +53,138 @@ def matches_product(
             listing_qty = extracted.normalized_value
             listing_unit = extracted.canonical_unit
 
-    # Enforce strict unit equivalence if user requested a specific package quantity
+    # 1a. Strict Volume & Weight Quantity / Unit equivalence
     if parsed_query.normalized_quantity is not None and parsed_query.normalized_unit is not None:
-        if not is_unit_equivalent(
-            parsed_query.normalized_quantity, parsed_query.normalized_unit,
-            listing_qty, listing_unit
-        ):
+        # If user searched/pasted a strict unit and listing has no identifiable unit
+        if listing_qty is None or listing_unit is None:
+            if parsed_query.is_url_query:
+                return False
+        else:
+            if not is_unit_equivalent(
+                parsed_query.normalized_quantity, parsed_query.normalized_unit,
+                listing_qty, listing_unit
+            ):
+                return False
+
+        # Additional regex scan on listing title to catch conflicting volume/weight numbers
+        if parsed_query.normalized_unit == "L":
+            target_ml = round(parsed_query.normalized_quantity * 1000)
+            for m in re.finditer(r'\b(\d+)\s*ml\b', listing_title, re.IGNORECASE):
+                if int(m.group(1)) != target_ml:
+                    return False
+            for m in re.finditer(r'\b(\d+(?:\.\d+)?)\s*(?:l|litre|litres)\b', listing_title, re.IGNORECASE):
+                val_l = float(m.group(1))
+                if abs(val_l - parsed_query.normalized_quantity) > 0.01:
+                    return False
+        elif parsed_query.normalized_unit == "kg":
+            target_g = round(parsed_query.normalized_quantity * 1000)
+            for m in re.finditer(r'\b(\d+)\s*(?:g|gm|gms)\b', listing_title, re.IGNORECASE):
+                if int(m.group(1)) != target_g:
+                    return False
+            for m in re.finditer(r'\b(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilogram)\b', listing_title, re.IGNORECASE):
+                val_kg = float(m.group(1))
+                if abs(val_kg - parsed_query.normalized_quantity) > 0.01:
+                    return False
+
+    # 2. Strict Storage Equivalence (e.g. 128GB vs 256GB vs 512GB)
+    locked_storage = parsed_query.locked_storage
+    if not locked_storage and parsed_query.normalized_unit == "GB" and parsed_query.normalized_quantity:
+        locked_storage = f"{int(parsed_query.normalized_quantity) if parsed_query.normalized_quantity.is_integer() else parsed_query.normalized_quantity}GB"
+
+    if locked_storage:
+        norm_target_storage = locked_storage.upper().replace(" ", "")
+        listing_storage = listing_variants.get('storage')
+        if listing_storage and listing_storage.upper().replace(" ", "") != norm_target_storage:
             return False
 
-    # 2. Variant / Specification verification (e.g. Storage, Footwear size)
-    listing_variants = extract_variants(listing_title)
-    if parsed_query.normalized_unit == "GB" and parsed_query.normalized_quantity:
-        # Check storage separation (e.g. 128GB vs 256GB)
-        if listing_qty and abs(listing_qty - parsed_query.normalized_quantity) > 0.01:
+        # Check for any conflicting storage capacity in listing title
+        for sm in re.finditer(r'\b(\d+\s*(?:GB|TB))\b', listing_title, re.IGNORECASE):
+            cand = sm.group(1).upper().replace(" ", "")
+            if listing_variants.get('ram') and cand == listing_variants['ram']:
+                continue
+            if cand != norm_target_storage:
+                return False
+
+        if parsed_query.is_url_query and norm_target_storage not in listing_title.upper().replace(" ", ""):
             return False
 
-    # 3. Brand consistency check
+    # 3. Strict Color Equivalence (e.g. Black vs Blue, Pink, Starlight, Yellow)
+    if parsed_query.locked_color:
+        target_color = parsed_query.locked_color.strip().lower()
+        listing_color = listing_variants.get('color')
+        if listing_color and listing_color.strip().lower() != target_color:
+            return False
+
+        # Scan for conflicting recognized colors in title
+        from app.intelligence.variants import COLOR_PATTERNS
+        for pat in COLOR_PATTERNS:
+            for cm in re.finditer(pat, listing_title, re.IGNORECASE):
+                found_col = cm.group(0).strip().lower()
+                if found_col != target_color:
+                    return False
+
+        if parsed_query.is_url_query:
+            if target_color not in listing_title.lower() and (not listing_color or listing_color.strip().lower() != target_color):
+                return False
+
+    # 4. Strict Sub-Model and Series Collision Prevention (e.g. iPhone 15 vs iPhone 15 Plus/Pro)
+    query_lower = parsed_query.raw_query.lower()
+    is_iphone = "iphone" in query_lower or (parsed_query.brand and parsed_query.brand.lower() == "apple" and "iphone" in parsed_query.product_name.lower())
+    if is_iphone:
+        target_has_pro = "pro" in query_lower
+        target_has_plus = "plus" in query_lower
+        target_has_max = "max" in query_lower
+        target_has_mini = "mini" in query_lower
+
+        listing_has_pro = bool(re.search(r'\bpro\b', listing_title, re.IGNORECASE))
+        listing_has_plus = bool(re.search(r'\bplus\b', listing_title, re.IGNORECASE))
+        listing_has_max = bool(re.search(r'\bmax\b', listing_title, re.IGNORECASE))
+        listing_has_mini = bool(re.search(r'\bmini\b', listing_title, re.IGNORECASE))
+
+        if not target_has_pro and listing_has_pro:
+            return False
+        if not target_has_plus and listing_has_plus:
+            return False
+        if not target_has_max and listing_has_max:
+            return False
+        if not target_has_mini and listing_has_mini:
+            return False
+
+        if target_has_pro and not listing_has_pro:
+            return False
+        if target_has_plus and not listing_has_plus:
+            return False
+
+    # 5. Strict Pack Multiplier Equivalence (e.g. Pack of 1 vs Pack of 2 or combo bundles)
+    if parsed_query.locked_pack:
+        target_pack = parsed_query.locked_pack
+        listing_pack = listing_variants.get('pack')
+        if listing_pack and listing_pack != target_pack:
+            return False
+        if target_pack == 1:
+            # Strictly reject multi-pack indicators
+            if re.search(r'\b(?:pack\s+of\s+[2-9]\d*|combo\s+of\s+[2-9]\d*|set\s+of\s+[2-9]\d*|[2-9]\s*pack)\b', listing_title, re.IGNORECASE):
+                return False
+        elif target_pack > 1:
+            if not re.search(rf'\b(?:pack\s+of\s+{target_pack}|combo\s+of\s+{target_pack}|set\s+of\s+{target_pack}|{target_pack}\s*pack)\b', listing_title, re.IGNORECASE):
+                return False
+
+    # 6. Brand consistency check
     if parsed_query.brand:
         listing_brand, _ = detect_brand(listing_title)
         # If listing has an identifiable brand that conflicts with user's requested brand, reject
         if listing_brand and listing_brand.lower() != parsed_query.brand.lower():
-            # Check if brand is just a substring difference
             if parsed_query.brand.lower() not in listing_title.lower():
                 return False
 
-    # 4. Model check (if specified)
+    # 7. Model check (if specified)
     if parsed_query.model:
         if parsed_query.model.lower() not in listing_title.lower():
             return False
 
-    # 5. Fuzzy string similarity check on core product name
-    score = compute_similarity(parsed_query.product_name, listing_title)
+    # 8. Fuzzy string similarity check on core product name
+    target_text = f"{parsed_query.brand} {parsed_query.product_name}".strip() if parsed_query.brand and parsed_query.brand.lower() not in parsed_query.product_name.lower() else parsed_query.product_name
+    score = max(compute_similarity(target_text, listing_title), compute_similarity(parsed_query.product_name, listing_title))
     return score >= threshold
 
 

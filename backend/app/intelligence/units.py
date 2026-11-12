@@ -68,9 +68,9 @@ UNIT_CONVERSION_MAP = {
     'capsules': ('capsules', 1.0),
 }
 
-# Regex to detect value and unit in titles (e.g. "1L", "1000 ml", "500g", "256 GB", "pack of 3")
+# Regex to detect value and unit in titles (e.g. "1L", "1000 ml", "500g", "256 GB", "pack of 3", "750-ml")
 UNIT_REGEX = re.compile(
-    r'\b(?:(?:pack\s+of\s+(\d+))|(\d+(?:\.\d+)?)\s*([a-zA-Z]+))\b',
+    r'\b(?:(?:pack\s+of\s+(\d+))|(\d+(?:\.\d+)?)[\s\-]*([a-zA-Z]+))\b',
     re.IGNORECASE
 )
 
@@ -80,24 +80,15 @@ def parse_and_normalize_unit(text: str) -> Optional[NormalizedQuantity]:
     if not text:
         return None
 
-    # Check for "pack of X" first
-    pack_match = re.search(r'\bpack\s+of\s+(\d+)\b', text, re.IGNORECASE)
-    if pack_match:
-        qty = float(pack_match.group(1))
-        return NormalizedQuantity(
-            normalized_value=qty,
-            canonical_unit='pack',
-            original_text=pack_match.group(0)
-        )
-
-    # Standard quantity + unit search
+    # Search for physical/tech/count units first
+    pack_fallback = None
     for match in UNIT_REGEX.finditer(text):
         pack_val, num_val, unit_val = match.groups()
-        if pack_val:
-            return NormalizedQuantity(float(pack_val), 'pack', match.group(0))
+        if pack_val and not pack_fallback:
+            pack_fallback = NormalizedQuantity(float(pack_val), 'pack', match.group(0))
         if num_val and unit_val:
             clean_unit = unit_val.lower().strip()
-            if clean_unit in UNIT_CONVERSION_MAP:
+            if clean_unit in UNIT_CONVERSION_MAP and clean_unit not in ['pack', 'packs']:
                 raw_number = float(num_val)
                 # Differentiate dosage strength (e.g. 500/650 in Dolo 650) from packaging count of tablets
                 if clean_unit in ['tablets', 'capsules'] and raw_number >= 50:
@@ -109,6 +100,17 @@ def parse_and_normalize_unit(text: str) -> Optional[NormalizedQuantity]:
                     canonical_unit=canonical,
                     original_text=match.group(0)
                 )
+
+    # Fallback to pack multiplier only if no physical weight/volume/tech unit exists
+    pack_match = re.search(r'\bpack\s+of\s+(\d+)\b', text, re.IGNORECASE)
+    if pack_match:
+        return NormalizedQuantity(
+            normalized_value=float(pack_match.group(1)),
+            canonical_unit='pack',
+            original_text=pack_match.group(0)
+        )
+    if pack_fallback:
+        return pack_fallback
 
     return None
 

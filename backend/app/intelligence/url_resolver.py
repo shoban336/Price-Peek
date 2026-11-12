@@ -1,11 +1,17 @@
 """Direct Product URL Resolver inspired by Buyhatke.com.
 Parses direct product links from Amazon, Flipkart, Myntra, Blinkit, Zepto, JioMart, BigBasket,
-extracts platform, product ID/ASIN, title slug, and generates clean search query.
+Tata 1mg, Croma, Nykaa, Ajio, extracts canonical identity and deep variant attributes:
+Brand, Product Name, Model, Exact Volume/Weight, Color, Storage, RAM, Size, and Pack Multiplier.
 """
 import re
 import urllib.parse
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from pydantic import BaseModel
+
+from app.intelligence.units import parse_and_normalize_unit
+from app.intelligence.variants import extract_variants
+from app.intelligence.brands import detect_brand
+from app.intelligence.parser import extract_model
 
 
 class ResolvedProductURL(BaseModel):
@@ -16,6 +22,19 @@ class ResolvedProductURL(BaseModel):
     raw_title_slug: Optional[str] = None
     clean_query: Optional[str] = None
     canonical_url: str
+    brand: Optional[str] = None
+    product_name: Optional[str] = None
+    model: Optional[str] = None
+    color: Optional[str] = None
+    storage: Optional[str] = None
+    ram: Optional[str] = None
+    shoe_size: Optional[str] = None
+    apparel_size: Optional[str] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    pack_multiplier: Optional[int] = 1
+    packaging: Optional[str] = None
+    locked_variant_tags: List[str] = []
 
 
 def clean_slug_to_query(slug: str) -> str:
@@ -46,9 +65,166 @@ def clean_slug_to_query(slug: str) -> str:
         meaningful_words.append(w)
 
     query = " ".join(meaningful_words).strip()
-    # Normalize units: e.g. "1 l" -> "1L", "500 ml" -> "500ml"
+    # Normalize units: e.g. "1 l" -> "1L", "500 ml" -> "500ml", "128 gb" -> "128GB"
     query = re.sub(r'(\d+)\s*(l|ml|kg|g|gm|gb|tb)\b', r'\1\2', query, flags=re.IGNORECASE)
-    return query.title()
+    # Proper casing for common brand words
+    res = query.title()
+    res = re.sub(r'\bIphone\b', 'iPhone', res)
+    res = re.sub(r'\bIpad\b', 'iPad', res)
+    res = re.sub(r'\b(\d+)Gb\b', r'\1GB', res)
+    res = re.sub(r'\b(\d+)Tb\b', r'\1TB', res)
+    res = re.sub(r'\b(\d+)Ml\b', r'\1ml', res)
+    return res
+
+
+def format_variant_tag_unit(quantity: Optional[float], unit: Optional[str]) -> Optional[str]:
+    """Format quantity and unit into standard consumer retail denominations (e.g. 750 ml, 500 g, 1 L)."""
+    if quantity is None or not unit:
+        return None
+    if unit == "L":
+        if quantity < 1.0:
+            return f"{round(quantity * 1000)} ml"
+        return f"{quantity:g} L"
+    elif unit == "kg":
+        if quantity < 1.0:
+            return f"{round(quantity * 1000)} g"
+        return f"{quantity:g} kg"
+    elif unit in ["GB", "TB", "MB"]:
+        return f"{int(quantity) if quantity.is_integer() else quantity} {unit}"
+    elif unit in ["pack", "pcs", "tablets", "capsules", "strip"]:
+        return f"{int(quantity) if quantity.is_integer() else quantity} {unit}"
+    return f"{quantity:g} {unit}"
+
+
+def _extract_deep_attributes(
+    slug: str,
+    query_string: str,
+    platform_id: str,
+    clean_query: str
+) -> Dict[str, Any]:
+    """Deeply inspect URL slug, query params, and cleaned title to isolate exact attributes."""
+    combined_raw = f"{slug.replace('-', ' ')} {clean_query}"
+    # Parse query parameters from URL
+    params = urllib.parse.parse_qs(query_string) if query_string else {}
+    for k, vals in params.items():
+        if k.lower() in ["color", "colour", "size", "storage", "ram", "variant", "pack", "volume"]:
+            for v in vals:
+                combined_raw += f" {v}"
+
+    # Extract Brand
+    brand, remaining_after_brand = detect_brand(clean_query)
+    if not brand:
+        brand, _ = detect_brand(combined_raw)
+
+    # Extract Model
+    model = extract_model(clean_query) or extract_model(combined_raw)
+
+    # Extract Variants (Color, Storage, RAM, Apparel/Shoe Size, Formulation, Pack)
+    variants = extract_variants(combined_raw)
+    color = variants.get("color")
+    storage = variants.get("storage")
+    ram = variants.get("ram")
+    shoe_size = variants.get("shoe_size")
+    apparel_size = variants.get("apparel_size")
+    packaging = variants.get("packaging")
+    pack_mult = variants.get("pack", 1)
+
+    # Check query params for explicit overrides
+    for k in ["color", "colour"]:
+        if k in params and params[k] and not color:
+            color = params[k][0].strip().title()
+    for k in ["storage", "rom"]:
+        if k in params and params[k] and not storage:
+            storage = params[k][0].strip().upper()
+    if "ram" in params and params["ram"] and not ram:
+        ram = params["ram"][0].strip().upper()
+
+    # Extract Quantity and Unit
+    unit_res = parse_and_normalize_unit(combined_raw)
+    quantity = unit_res.normalized_value if unit_res else None
+    unit = unit_res.canonical_unit if unit_res else None
+
+    # Handle storage unit equivalence (e.g. 128GB vs unit=GB, quantity=128)
+    if storage and (unit != "GB" or quantity is None):
+        sm = re.search(r'(\d+)\s*(GB|TB)', storage, re.IGNORECASE)
+        if sm:
+            val = float(sm.group(1))
+            canonical_u = sm.group(2).upper()
+            if canonical_u == "TB":
+                val = val * 1024.0
+                canonical_u = "GB"
+            if not unit:
+                quantity = val
+                unit = canonical_u
+
+    # If unit is GB and storage not set, set storage
+    if unit == "GB" and quantity and not storage:
+        storage = f"{int(quantity) if quantity.is_integer() else quantity}GB"
+
+    # Build locked variant tags
+    locked_tags: List[str] = []
+    # 1. Volume / Weight unit (if not tech digital storage)
+    if quantity is not None and unit and unit != "GB":
+        formatted_u = format_variant_tag_unit(quantity, unit)
+        if formatted_u:
+            locked_tags.append(formatted_u)
+
+    # 2. Storage
+    if storage:
+        s_display = re.sub(r'(\d+)\s*(GB|TB)', r'\1 \2', storage, flags=re.IGNORECASE).upper()
+        locked_tags.append(s_display)
+
+    # 3. RAM
+    if ram:
+        r_display = re.sub(r'(\d+)\s*GB', r'\1 GB RAM', ram, flags=re.IGNORECASE).upper()
+        locked_tags.append(r_display)
+
+    # 4. Color
+    if color:
+        locked_tags.append(color)
+
+    # 5. Shoe or Apparel Size
+    if shoe_size:
+        locked_tags.append(shoe_size)
+    elif apparel_size:
+        locked_tags.append(f"Size {apparel_size}")
+
+    # 6. Pack
+    if pack_mult and pack_mult > 1:
+        locked_tags.append(f"Pack of {pack_mult}")
+    elif pack_mult == 1 and ("pack of 1" in combined_raw.lower() or "pack" in params.get("pack", [""])[0].lower()):
+        locked_tags.append("Pack of 1")
+
+    # 7. Packaging
+    if packaging and packaging.lower() not in ["bottle"]:
+        locked_tags.append(packaging)
+
+    # Construct clean canonical product name
+    clean_title = clean_query
+    if brand and brand.lower() not in clean_title.lower():
+        clean_title = f"{brand} {clean_title}"
+    if storage and storage.lower() not in clean_title.lower():
+        clean_title = f"{clean_title} {storage}"
+    if color and color.lower() not in clean_title.lower():
+        clean_title = f"{clean_title} {color}"
+    if pack_mult and pack_mult > 1 and "pack" not in clean_title.lower():
+        clean_title = f"{clean_title} Pack of {pack_mult}"
+
+    return {
+        "brand": brand,
+        "model": model,
+        "color": color,
+        "storage": storage,
+        "ram": ram,
+        "shoe_size": shoe_size,
+        "apparel_size": apparel_size,
+        "quantity": quantity,
+        "unit": unit,
+        "pack_multiplier": pack_mult,
+        "packaging": packaging,
+        "locked_variant_tags": locked_tags,
+        "canonical_title": clean_title,
+    }
 
 
 def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
@@ -61,7 +237,8 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
     url_pattern = r'^(https?:\/\/)?([a-zA-Z0-9\-\.]+)\.([a-zA-Z]{2,})(\/.*)?$'
     match = re.match(url_pattern, text)
     if not match and not any(d in text.lower() for d in [
-        "amazon.", "flipkart.", "myntra.", "blinkit.", "zeptonow.", "jiomart.", "bigbasket.", "ajio.", "croma.", "nykaa.", "1mg."
+        "amazon.", "amzn.to", "flipkart.", "fkrt.it", "myntra.", "blinkit.", "zeptonow.", "zepto.",
+        "jiomart.", "bigbasket.", "ajio.", "croma.", "nykaa.", "1mg.", "tata1mg."
     ]):
         return None
 
@@ -71,11 +248,12 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
         parsed = urllib.parse.urlparse(url)
         netloc = parsed.netloc.lower()
         path = parsed.path
+        query_str = parsed.query
     except Exception:
         return None
 
-    # 1. Amazon India (e.g. amazon.in/dp/B0FNX5ZG78 or amazon.in/Gold-Winner-Oil/dp/B0FNX5ZG78)
-    if "amazon." in netloc:
+    # 1. Amazon India (e.g. amazon.in/dp/B0FNX5ZG78 or amazon.in/Gold-Winner-Oil/dp/B0FNX5ZG78 or amzn.to/...)
+    if "amazon." in netloc or "amzn.to" in netloc:
         asin_match = re.search(r'/(?:dp|gp/product|gp/aw/d)/([A-Z0-9]{10})', path)
         asin = asin_match.group(1) if asin_match else None
         
@@ -84,6 +262,7 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
         slug = slug_match.group(1) if slug_match else ""
         query = clean_slug_to_query(slug) or (f"Amazon Item {asin}" if asin else "Amazon Product")
 
+        attrs = _extract_deep_attributes(slug, query_str, "amazon", query)
         return ResolvedProductURL(
             is_url=True,
             platform_id="amazon",
@@ -91,11 +270,24 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             product_id=asin,
             raw_title_slug=slug,
             clean_query=query,
-            canonical_url=url
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
         )
 
-    # 2. Flipkart (e.g. flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4)
-    if "flipkart." in netloc:
+    # 2. Flipkart (e.g. flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4 or fkrt.it/...)
+    if "flipkart." in netloc or "fkrt.it" in netloc:
         id_match = re.search(r'/p/(itm[a-zA-Z0-9]+)', path)
         item_id = id_match.group(1) if id_match else None
         
@@ -103,6 +295,7 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
         slug = slug_match.group(1) if slug_match else ""
         query = clean_slug_to_query(slug) or (f"Flipkart Item {item_id}" if item_id else "Flipkart Product")
 
+        attrs = _extract_deep_attributes(slug, query_str, "flipkart", query)
         return ResolvedProductURL(
             is_url=True,
             platform_id="flipkart",
@@ -110,7 +303,20 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             product_id=item_id,
             raw_title_slug=slug,
             clean_query=query,
-            canonical_url=url
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
         )
 
     # 3. Myntra (e.g. myntra.com/shirts/roadster/roadster-men-cotton-casual-shirt/12345/buy)
@@ -122,6 +328,7 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
         slug = slug_match.group(1) if slug_match else path.strip('/').split('/')[-1]
         query = clean_slug_to_query(slug) or "Myntra Fashion Item"
 
+        attrs = _extract_deep_attributes(slug, query_str, "myntra", query)
         return ResolvedProductURL(
             is_url=True,
             platform_id="myntra",
@@ -129,7 +336,20 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             product_id=item_id,
             raw_title_slug=slug,
             clean_query=query,
-            canonical_url=url
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
         )
 
     # 4. Blinkit (e.g. blinkit.com/prn/gold-winner-sunflower-oil/prid/66192)
@@ -141,6 +361,7 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
         slug = slug_match.group(1) if slug_match else ""
         query = clean_slug_to_query(slug) or "Blinkit Grocery Item"
 
+        attrs = _extract_deep_attributes(slug, query_str, "blinkit", query)
         return ResolvedProductURL(
             is_url=True,
             platform_id="blinkit",
@@ -148,7 +369,20 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             product_id=item_id,
             raw_title_slug=slug,
             clean_query=query,
-            canonical_url=url
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
         )
 
     # 5. Zepto (e.g. zeptonow.com/pn/gold-winner-refined-sunflower-oil-pouch/pvid/93a89783)
@@ -160,6 +394,7 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
         slug = slug_match.group(1) if slug_match else ""
         query = clean_slug_to_query(slug) or "Zepto Quick Item"
 
+        attrs = _extract_deep_attributes(slug, query_str, "zepto", query)
         return ResolvedProductURL(
             is_url=True,
             platform_id="zepto",
@@ -167,7 +402,20 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             product_id=item_id,
             raw_title_slug=slug,
             clean_query=query,
-            canonical_url=url
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
         )
 
     # 6. JioMart (e.g. jiomart.com/product/gold-winner-refined-sunflower-oil-1-l-pouch-mffn5q-7533064)
@@ -180,6 +428,7 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             item_id = id_match.group(1) if id_match else slug_sku.split('-')[-1]
             query = clean_slug_to_query(slug_sku) or "JioMart Grocery Item"
 
+            attrs = _extract_deep_attributes(slug_sku, query_str, "jiomart", query)
             return ResolvedProductURL(
                 is_url=True,
                 platform_id="jiomart",
@@ -187,7 +436,20 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
                 product_id=item_id,
                 raw_title_slug=slug_sku,
                 clean_query=query,
-                canonical_url=url
+                canonical_url=url,
+                brand=attrs["brand"],
+                product_name=query,
+                model=attrs["model"],
+                color=attrs["color"],
+                storage=attrs["storage"],
+                ram=attrs["ram"],
+                shoe_size=attrs["shoe_size"],
+                apparel_size=attrs["apparel_size"],
+                quantity=attrs["quantity"],
+                unit=attrs["unit"],
+                pack_multiplier=attrs["pack_multiplier"],
+                packaging=attrs["packaging"],
+                locked_variant_tags=attrs["locked_variant_tags"],
             )
 
         # Legacy /p/ fallback
@@ -198,6 +460,7 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
         slug = parts[-1] if parts else ""
         query = clean_slug_to_query(slug) or "JioMart Grocery Item"
 
+        attrs = _extract_deep_attributes(slug, query_str, "jiomart", query)
         return ResolvedProductURL(
             is_url=True,
             platform_id="jiomart",
@@ -205,11 +468,24 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             product_id=item_id,
             raw_title_slug=slug,
             clean_query=query,
-            canonical_url=url
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
         )
 
     # 7. BigBasket (e.g. bigbasket.com/pd/274141/gold-winner-refined-sunflower-oil-1-l-pouch/)
-    if "bigbasket." in netloc:
+    if "bigbasket." in netloc or "bb.in" in netloc:
         id_match = re.search(r'/pd/(\d+)', path)
         item_id = id_match.group(1) if id_match else None
 
@@ -217,6 +493,7 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
         slug = slug_match.group(1) if slug_match else ""
         query = clean_slug_to_query(slug) or "BigBasket Item"
 
+        attrs = _extract_deep_attributes(slug, query_str, "bigbasket", query)
         return ResolvedProductURL(
             is_url=True,
             platform_id="bigbasket",
@@ -224,7 +501,86 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
             product_id=item_id,
             raw_title_slug=slug,
             clean_query=query,
-            canonical_url=url
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
+        )
+
+    # 8. Tata 1mg (e.g. 1mg.com/drugs/dolo-650-tablet-74467 or 1mg.com/otc/...)
+    if "1mg." in netloc or "tata1mg." in netloc:
+        id_match = re.search(r'-(\d+)$', path)
+        item_id = id_match.group(1) if id_match else None
+
+        slug_match = re.search(r'/(?:drugs|otc)/([^/]+)', path)
+        slug = slug_match.group(1) if slug_match else path.strip('/').split('/')[-1]
+        query = clean_slug_to_query(slug) or "Tata 1mg Pharmacy Item"
+
+        attrs = _extract_deep_attributes(slug, query_str, "tata1mg", query)
+        return ResolvedProductURL(
+            is_url=True,
+            platform_id="tata1mg",
+            platform_name="Tata 1mg",
+            product_id=item_id,
+            raw_title_slug=slug,
+            clean_query=query,
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
+        )
+
+    # 9. Croma (e.g. croma.com/apple-iphone-15-128gb-black-/p/300652)
+    if "croma." in netloc:
+        id_match = re.search(r'/p/(\d+)', path)
+        item_id = id_match.group(1) if id_match else None
+
+        slug_match = re.search(r'/([^/]+)/p/', path)
+        slug = slug_match.group(1) if slug_match else path.strip('/').split('/')[-1]
+        query = clean_slug_to_query(slug) or "Croma Electronics Item"
+
+        attrs = _extract_deep_attributes(slug, query_str, "croma", query)
+        return ResolvedProductURL(
+            is_url=True,
+            platform_id="croma",
+            platform_name="Croma",
+            product_id=item_id,
+            raw_title_slug=slug,
+            clean_query=query,
+            canonical_url=url,
+            brand=attrs["brand"],
+            product_name=query,
+            model=attrs["model"],
+            color=attrs["color"],
+            storage=attrs["storage"],
+            ram=attrs["ram"],
+            shoe_size=attrs["shoe_size"],
+            apparel_size=attrs["apparel_size"],
+            quantity=attrs["quantity"],
+            unit=attrs["unit"],
+            pack_multiplier=attrs["pack_multiplier"],
+            packaging=attrs["packaging"],
+            locked_variant_tags=attrs["locked_variant_tags"],
         )
 
     # Generic E-commerce Store Link
@@ -232,14 +588,30 @@ def parse_product_url(input_text: str) -> Optional[ResolvedProductURL]:
     slug = path_segments[-1] if path_segments else ""
     query = clean_slug_to_query(slug) or netloc.split('.')[0].title() + " Product"
 
+    platform_slug = netloc.split('.')[1] if len(netloc.split('.')) > 2 else netloc.split('.')[0]
+    attrs = _extract_deep_attributes(slug, query_str, platform_slug, query)
+
     return ResolvedProductURL(
         is_url=True,
-        platform_id=netloc.split('.')[1] if len(netloc.split('.')) > 2 else netloc.split('.')[0],
+        platform_id=platform_slug,
         platform_name=netloc,
         product_id=None,
         raw_title_slug=slug,
         clean_query=query,
-        canonical_url=url
+        canonical_url=url,
+        brand=attrs["brand"],
+        product_name=query,
+        model=attrs["model"],
+        color=attrs["color"],
+        storage=attrs["storage"],
+        ram=attrs["ram"],
+        shoe_size=attrs["shoe_size"],
+        apparel_size=attrs["apparel_size"],
+        quantity=attrs["quantity"],
+        unit=attrs["unit"],
+        pack_multiplier=attrs["pack_multiplier"],
+        packaging=attrs["packaging"],
+        locked_variant_tags=attrs["locked_variant_tags"],
     )
 
 

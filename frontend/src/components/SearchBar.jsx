@@ -83,7 +83,7 @@ export default function SearchBar({ onSearch, loading }) {
   // Debounced live search autocomplete as user types (300ms)
   useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed) {
+    if (!trimmed || trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('www.')) {
       setSuggestions([]);
       setShowDropdown(false);
       setIsSearchingSuggestions(false);

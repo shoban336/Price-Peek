@@ -66,10 +66,44 @@ def parse_query(raw_query: str) -> ParsedQuery:
     # 5. Classify Category
     category = classify_category(cleaned)
 
-    # 6. Refine product name by stripping extracted unit text to prevent redundant tokens
+    # 6. Build locked variant tags for strict variant comparison
+    locked_color = variants.get("color")
+    locked_storage = variants.get("storage")
+    locked_ram = variants.get("ram")
+    locked_pack = variants.get("pack")
+
+    locked_tags = []
+    if normalized_qty is not None and normalized_unit and normalized_unit != "GB":
+        if normalized_unit == "L" and normalized_qty < 1.0:
+            locked_tags.append(f"{round(normalized_qty * 1000)} ml")
+        elif normalized_unit == "kg" and normalized_qty < 1.0:
+            locked_tags.append(f"{round(normalized_qty * 1000)} g")
+        elif normalized_unit in ["kg", "L"]:
+            locked_tags.append(f"{int(normalized_qty) if normalized_qty.is_integer() else normalized_qty} {normalized_unit}")
+        else:
+            locked_tags.append(f"{normalized_qty:g} {normalized_unit}")
+
+    if locked_storage:
+        s_display = re.sub(r'(\d+)\s*(GB|TB)', r'\1 \2', locked_storage, flags=re.IGNORECASE).upper()
+        locked_tags.append(s_display)
+    if locked_ram:
+        locked_tags.append(f"{locked_ram} RAM")
+    if locked_color:
+        locked_tags.append(locked_color)
+    if variants.get("shoe_size"):
+        locked_tags.append(variants["shoe_size"])
+    elif variants.get("apparel_size"):
+        locked_tags.append(f"Size {variants['apparel_size']}")
+    if locked_pack and locked_pack > 1:
+        locked_tags.append(f"Pack of {locked_pack}")
+    elif locked_pack == 1 and "pack of 1" in cleaned.lower():
+        locked_tags.append("Pack of 1")
+
+    # 7. Refine product name by stripping extracted unit text and pack text to prevent redundant tokens
     clean_name = remaining_query
     if unit_result:
         clean_name = re.sub(re.escape(unit_result.original_text), '', clean_name, flags=re.IGNORECASE)
+    clean_name = re.sub(r'\bpack\s+of\s+\d+\b', '', clean_name, flags=re.IGNORECASE)
 
     # Clean whitespace and trailing punctuation
     clean_name = re.sub(r'[\s\-_]+', ' ', clean_name).strip()
@@ -85,4 +119,9 @@ def parse_query(raw_query: str) -> ParsedQuery:
         normalized_quantity=normalized_qty,
         normalized_unit=normalized_unit,
         variant=variant_str,
+        locked_color=locked_color,
+        locked_storage=locked_storage,
+        locked_ram=locked_ram,
+        locked_pack=locked_pack,
+        locked_variant_tags=locked_tags,
     )

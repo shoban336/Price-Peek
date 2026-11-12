@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import SearchBar from './components/SearchBar';
 import ComparisonSummaryBanner from './components/ComparisonSummaryBanner';
+import ResolvedProductBanner from './components/ResolvedProductBanner';
 import ProductListingCard from './components/ProductListingCard';
 import PriceComparisonTable from './components/PriceComparisonTable';
 import PriceHistoryModal from './components/PriceHistoryModal';
@@ -169,6 +170,13 @@ export default function App() {
 
         {!loading && searchResults && (
           <>
+            {/* Resolved Direct Product URL Banner */}
+            <ResolvedProductBanner
+              resolvedInfo={searchResults.resolved_url_info}
+              parsedQuery={searchResults.parsed_query}
+              matchingStoreCount={displayedListings.length}
+            />
+
             {/* Summary Insights Highlight */}
             <ComparisonSummaryBanner
               summary={searchResults.summary}
