@@ -47,6 +47,8 @@ class ProductListing(BaseModel):
     is_live: bool = Field(True, description="True if fetched live; False if cached/fallback")
     delivery_pin: Optional[str] = None
     delivery_time_estimate: Optional[str] = None  # e.g. "10 mins", "Same Day", "2 Days"
+    is_official_store: bool = False
+    official_store_badge: Optional[str] = None
 
 
 class ComparisonSummary(BaseModel):

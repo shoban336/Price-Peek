@@ -28,6 +28,11 @@ export default function ProductListingCard({ listing, isCheapest }) {
       <div className="card-platform-header">
         <div className="platform-brand-info">
           <span className="platform-name">{platform_name}</span>
+          {(listing.is_official_store || listing.platform_id === 'brand_official' || (platform_name && platform_name.includes('Official Store'))) && (
+            <span className="official-store-badge" title="Official Brand D2C Store">
+              Official Store
+            </span>
+          )}
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

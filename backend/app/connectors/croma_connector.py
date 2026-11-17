@@ -4,6 +4,7 @@ from typing import List, Optional
 from app.connectors.base_connector import BaseConnector, RawProductListing
 from app.connectors.http_client import fetch_page
 from app.schemas.platform_schema import PlatformStatus, PlatformCategory
+from app.intelligence.url_resolver import resolve_croma_url
 
 
 class CromaConnector(BaseConnector):
@@ -36,6 +37,7 @@ class CromaConnector(BaseConnector):
                     url_path = prod.get("url")
                     if name and price and url_path:
                         clean_url = f"https://www.croma.com{url_path}" if not url_path.startswith("http") else url_path
+                        clean_url = resolve_croma_url(name, clean_url)
                         listings.append(
                             RawProductListing(
                                 platform_id=self.platform_id,

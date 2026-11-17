@@ -98,6 +98,12 @@ def persist_search_listings(db: Session, parsed: ParsedQuery, listings: List[Pro
             rec.original_price = item.original_price
             rec.discount_percent = item.discount_percent
             rec.in_stock = item.in_stock
+            rec.product_url = item.product_url
+            rec.deep_link_url = item.deep_link_url
+            rec.title = item.title
+            rec.image_url = item.image_url or rec.image_url
+            rec.rating = item.rating or rec.rating
+            rec.updated_at = now
             rec.updated_at = now
 
         # Append to historical timeline

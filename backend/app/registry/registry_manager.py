@@ -19,6 +19,19 @@ from app.connectors.jiomart_connector import JioMartConnector
 from app.connectors.myntra_connector import MyntraConnector
 from app.connectors.ajio_connector import AjioConnector
 from app.connectors.nykaa_connector import NykaaConnector
+from app.connectors.reliance_digital_connector import RelianceDigitalConnector
+from app.connectors.sangeetha_connector import SangeethaMobilesConnector
+from app.connectors.vijay_sales_connector import VijaySalesConnector
+from app.connectors.tatacliq_connector import TataCliqConnector
+from app.connectors.nykaafashion_connector import NykaaFashionConnector
+from app.connectors.amazon_fresh_connector import AmazonFreshConnector
+from app.connectors.flipkart_minutes_connector import FlipkartMinutesConnector
+from app.connectors.tira_connector import TiraBeautyConnector
+from app.connectors.purplle_connector import PurplleConnector
+from app.connectors.pharmeasy_connector import PharmEasyConnector
+from app.connectors.apollo_connector import ApolloPharmacyConnector
+from app.connectors.netmeds_connector import NetmedsConnector
+from app.connectors.brand_official_connector import BrandOfficialConnector
 from app.schemas.platform_schema import PlatformSchema, PlatformStatus, PlatformCategory
 
 
@@ -44,6 +57,19 @@ class PlatformRegistry:
             CromaConnector(),
             Tata1mgConnector(),
             NykaaConnector(),
+            RelianceDigitalConnector(),
+            SangeethaMobilesConnector(),
+            VijaySalesConnector(),
+            TataCliqConnector(),
+            NykaaFashionConnector(),
+            AmazonFreshConnector(),
+            FlipkartMinutesConnector(),
+            TiraBeautyConnector(),
+            PurplleConnector(),
+            PharmEasyConnector(),
+            ApolloPharmacyConnector(),
+            NetmedsConnector(),
+            BrandOfficialConnector(),
         ]
         for conn in defaults:
             self._connectors[conn.platform_id] = conn

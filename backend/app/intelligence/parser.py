@@ -18,7 +18,8 @@ MODEL_PATTERNS = [
     # Specific series names first
     (r'\b(air\s*max(?:\s*\d+)?)\b', 1),
     (r'\b(pavilion|thinkpad|macbook\s*(?:air|pro)|inspiron|legion|yoga)\b', 1),
-    (r'\b(?:galaxy\s*)([sza]\d{2}(?:\s*(?:ultra|plus|fe))?)\b', 1),
+    (r'\b(?:galaxy\s*)(z\s*(?:flip|fold)\s*\d+(?:\s*5g)?)\b', 1),
+    (r'\b(?:galaxy\s*)([sza]\d{1,2}(?:\s*(?:ultra|plus|fe|5g|4g))?)\b', 1),
     # Explicit iPhone model numbering (requires "iphone" before the digit)
     (r'\b(?:iphone\s+)(\d{1,2}(?:\s*(?:pro\s*max|pro|plus|mini))?)\b', 1),
 ]

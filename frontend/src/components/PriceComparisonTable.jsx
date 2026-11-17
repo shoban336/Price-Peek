@@ -12,6 +12,17 @@ const STORE_THEMES = {
   ajio: { bg: '#f8fafc', text: '#0f172a', border: '#cbd5e1', name: 'AJIO' },
   croma: { bg: '#ecfeff', text: '#0891b2', border: '#a5f3fc', name: 'Croma' },
   tata1mg: { bg: '#fff1f2', text: '#e11d48', border: '#fecdd3', name: 'Tata 1mg' },
+  brand_official: { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe', name: 'Official Store' },
+  reliance_digital: { bg: '#fef2f2', text: '#b91c1c', border: '#fecaca', name: 'Reliance Digital' },
+  sangeetha_mobiles: { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0', name: 'Sangeetha Mobiles' },
+  vijay_sales: { bg: '#fff7ed', text: '#c2410c', border: '#fed7aa', name: 'Vijay Sales' },
+  tatacliq: { bg: '#fdf2f8', text: '#be185d', border: '#fbcfe8', name: 'Tata CLiQ' },
+  nykaa: { bg: '#fdf2f8', text: '#db2777', border: '#fbcfe8', name: 'Nykaa' },
+  tira: { bg: '#faf5ff', text: '#6b21a8', border: '#e9d5ff', name: 'Tira Beauty' },
+  purplle: { bg: '#f5f3ff', text: '#5b21b6', border: '#ddd6fe', name: 'Purplle' },
+  pharmeasy: { bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0', name: 'PharmEasy' },
+  apollo_pharmacy: { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe', name: 'Apollo Pharmacy' },
+  netmeds: { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0', name: 'Netmeds' },
 };
 
 export default function PriceComparisonTable({ listings, cheapestId, onOpenAlert }) {
@@ -58,6 +69,11 @@ export default function PriceComparisonTable({ listings, cheapestId, onOpenAlert
                     }}
                   >
                     <span>{item.platform_name}</span>
+                    {(item.is_official_store || item.platform_id === 'brand_official') && (
+                      <span className="official-store-badge" style={{ marginLeft: '4px', fontSize: '0.62rem', padding: '0.1rem 0.35rem' }}>
+                        Official
+                      </span>
+                    )}
                   </div>
                   {isLowest && (
                     <span className="best-deal-tag">

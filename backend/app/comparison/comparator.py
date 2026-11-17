@@ -57,6 +57,18 @@ def is_valid_pdp_listing(listing: Any) -> bool:
     if any(pat in url for pat in broken_patterns):
         return False
 
+    # Strictly reject Google redirect notice links
+    if "google.com/url" in url or "google.com/search" in url:
+        return False
+
+    # Strictly reject fake / synthetic mock identifiers across platforms
+    if any(fake in url for fake in [
+        "dolo650-pvid", "/prid/dolo650", "b07xb2z92t", "b0ckr12345",
+        "b07k123456", "b07k123457", "itmcase12345", "itm123456", "itm123457",
+        "41639"
+    ]):
+        return False
+
     # Strictly reject legacy broken /p/ paths on JioMart that cause 404s
     if "jiomart.com" in parsed_url.netloc or "jiomart" in parsed_url.netloc:
         if "/p/" in url:

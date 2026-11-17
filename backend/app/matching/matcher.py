@@ -8,6 +8,7 @@ from app.connectors.base_connector import RawProductListing
 from app.intelligence.units import parse_and_normalize_unit, is_unit_equivalent
 from app.intelligence.variants import extract_variants
 from app.intelligence.brands import detect_brand
+from app.services.url_resolver import generate_store_outbound_url
 
 
 def compute_similarity(query: str, target: str) -> float:
@@ -179,8 +180,25 @@ def matches_product(
 
     # 7. Model check (if specified)
     if parsed_query.model:
-        if parsed_query.model.lower() not in listing_title.lower():
-            return False
+        model_clean = parsed_query.model.lower().strip()
+        pattern = rf'\b{re.escape(model_clean)}\b'
+        if not re.search(pattern, listing_title.lower()):
+            parts = model_clean.split()
+            if len(parts) > 1 and all(re.search(rf'\b{re.escape(p)}\b', listing_title.lower()) for p in parts):
+                pass
+            else:
+                return False
+
+        # Additional protection against sibling models (e.g. A37 must never match A35 or A55)
+        m_code = re.search(r'\b([a-z]\d{1,2})\b', model_clean)
+        if m_code:
+            target_series = m_code.group(1)
+            # Find any other letter+digit code in listing title
+            for l_code in re.finditer(r'\b([a-z]\d{1,2})\b', listing_title.lower()):
+                cand = l_code.group(1)
+                if cand != target_series and cand[0] == target_series[0]:
+                    # Same series prefix (e.g. 'a') but different number ('35' vs '37')
+                    return False
 
     # 8. Fuzzy string similarity check on core product name
     target_text = f"{parsed_query.brand} {parsed_query.product_name}".strip() if parsed_query.brand and parsed_query.brand.lower() not in parsed_query.product_name.lower() else parsed_query.product_name
@@ -207,6 +225,12 @@ def filter_and_normalize_listings(
                     qty = parsed_u.normalized_value
                     unit = parsed_u.canonical_unit
 
+            final_url, final_deep = generate_store_outbound_url(
+                raw.platform_id,
+                raw.title or parsed_query.raw_query,
+                raw.product_url
+            )
+
             matched.append(
                 ProductListing(
                     platform_id=raw.platform_id,
@@ -221,8 +245,8 @@ def filter_and_normalize_listings(
                     in_stock=raw.in_stock,
                     rating=raw.rating,
                     rating_count=raw.rating_count,
-                    product_url=raw.product_url,
-                    deep_link_url=raw.deep_link_url,
+                    product_url=final_url,
+                    deep_link_url=final_deep or raw.deep_link_url,
                     image_url=raw.image_url,
                     normalized_quantity=qty,
                     normalized_unit=unit,
@@ -230,6 +254,8 @@ def filter_and_normalize_listings(
                     is_live=raw.is_live,
                     delivery_pin=raw.delivery_pin,
                     delivery_time_estimate=raw.delivery_time_estimate,
+                    is_official_store=raw.is_official_store or (raw.platform_id == "brand_official") or ("Official Store" in raw.platform_name),
+                    official_store_badge=raw.official_store_badge or ("Official Brand Website" if (raw.platform_id == "brand_official" or "Official Store" in raw.platform_name) else None),
                 )
             )
 

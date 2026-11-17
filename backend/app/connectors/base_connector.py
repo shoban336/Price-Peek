@@ -30,6 +30,8 @@ class RawProductListing:
     is_live: bool = True
     delivery_pin: Optional[str] = None
     delivery_time_estimate: Optional[str] = None
+    is_official_store: bool = False
+    official_store_badge: Optional[str] = None
 
 
 class BaseConnector(ABC):

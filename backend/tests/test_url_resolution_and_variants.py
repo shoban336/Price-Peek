@@ -247,3 +247,74 @@ def test_api_endpoint_handles_long_pasted_url():
     assert "128 GB" in data["parsed_query"]["locked_variant_tags"]
     assert "Black" in data["parsed_query"]["locked_variant_tags"]
     assert len(data["listings"]) > 0
+
+
+def test_resolve_croma_url_and_outbound_routing():
+    """Verify Croma URLs strictly include %3Arelevance and &text= parameter, and preserve valid /p/ links."""
+    from app.intelligence.url_resolver import resolve_croma_url
+
+    # 1. Search fallback must include both %3Arelevance and &text= to avoid blank black screen
+    search_url = resolve_croma_url("Samsung Galaxy A37 5G Awesome Lavender 128GB")
+    assert "%3Arelevance" in search_url
+    assert "&text=" in search_url
+    assert "https://www.croma.com/searchB?q=" in search_url
+
+    # 2. Canonical PDP link with /p/<id> is preserved as-is
+    direct_pdp = "https://www.croma.com/samsung-galaxy-a35-5g-awesome-lilac-128gb-/p/305312"
+    assert resolve_croma_url("Samsung Galaxy A35", direct_pdp) == direct_pdp
+
+    # 3. generate_store_outbound_url generates valid Croma URL
+    croma_url, deep = generate_store_outbound_url("croma", "Samsung Galaxy A37 5G Awesome Lavender 128GB")
+    assert "%3Arelevance" in croma_url
+    assert "&text=" in croma_url
+    assert deep.startswith("croma://")
+
+
+def test_samsung_galaxy_a37_exact_variant_matching():
+    """Verify Samsung Galaxy A37 5G Awesome Lavender 128GB deep extraction & strict variant exclusion."""
+    url = "https://www.flipkart.com/samsung-galaxy-a37-5g-awesome-lavender-128-gb/p/itm_samsung_a37_lavender_128"
+    resolved = parse_product_url(url)
+    assert resolved is not None
+    assert resolved.brand == "Samsung"
+    assert resolved.storage == "128GB"
+    assert resolved.color == "Awesome Lavender"
+    assert "Awesome Lavender" in resolved.locked_variant_tags
+    assert "128 GB" in resolved.locked_variant_tags
+
+    parsed = parse_query(resolved.clean_query)
+    parsed.is_url_query = True
+    parsed.locked_storage = resolved.storage
+    parsed.locked_color = resolved.color
+    parsed.model = resolved.model
+
+    # Exact match
+    match_exact = RawProductListing(
+        platform_id="croma", platform_name="Croma", platform_category="electronics",
+        title="Samsung Galaxy A37 5G (Awesome Lavender, 128 GB)", price=29999, in_stock=True, product_url="https://croma/p/1"
+    )
+    # Model mismatch: A35
+    mismatch_a35 = RawProductListing(
+        platform_id="amazon", platform_name="Amazon India", platform_category="ecommerce",
+        title="Samsung Galaxy A35 5G (Awesome Lavender, 128 GB)", price=26999, in_stock=True, product_url="https://amazon/dp/1"
+    )
+    # Model mismatch: A55
+    mismatch_a55 = RawProductListing(
+        platform_id="flipkart", platform_name="Flipkart", platform_category="ecommerce",
+        title="Samsung Galaxy A55 5G (Awesome Lavender, 128 GB)", price=34999, in_stock=True, product_url="https://flipkart/p/1"
+    )
+    # Storage mismatch: 256GB
+    mismatch_storage = RawProductListing(
+        platform_id="croma", platform_name="Croma", platform_category="electronics",
+        title="Samsung Galaxy A37 5G (Awesome Lavender, 256 GB)", price=33999, in_stock=True, product_url="https://croma/p/2"
+    )
+    # Color mismatch: Black
+    mismatch_color = RawProductListing(
+        platform_id="amazon", platform_name="Amazon India", platform_category="ecommerce",
+        title="Samsung Galaxy A37 5G (Awesome Black, 128 GB)", price=29999, in_stock=True, product_url="https://amazon/dp/2"
+    )
+
+    assert matches_product(parsed, match_exact) is True
+    assert matches_product(parsed, mismatch_a35) is False
+    assert matches_product(parsed, mismatch_a55) is False
+    assert matches_product(parsed, mismatch_storage) is False
+    assert matches_product(parsed, mismatch_color) is False

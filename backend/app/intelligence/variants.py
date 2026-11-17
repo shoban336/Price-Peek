@@ -6,7 +6,7 @@ from typing import Optional, Dict, List, Any
 
 # Common color identifiers (longest/specific phrases first)
 COLOR_PATTERNS = [
-    r'\b(?:natural\s+titanium|desert\s+titanium|black\s+titanium|white\s+titanium|space\s+gray|space\s+black|rose\s+gold|cosmic\s+blue|midnight\s+black|starlight|midnight|black|white|silver|gold|blue|red|green|purple|yellow|pink|orange|navy|grey|gray|coral)\b'
+    r'\b(?:awesome\s+lavender|awesome\s+lilac|awesome\s+iceblue|awesome\s+navy|awesome\s+lemon|awesome\s+violet|awesome\s+graphite|awesome\s+lime|awesome\s+silver|awesome\s+black|awesome\s+white|awesome\s+mint|awesome\s+peach|lavender|lilac|violet|lime|graphite|cream|mint|emerald|cyan|magenta|burgundy|natural\s+titanium|desert\s+titanium|black\s+titanium|white\s+titanium|space\s+gray|space\s+black|rose\s+gold|cosmic\s+blue|cosmic\s+orange|midnight\s+black|starlight|midnight|black|white|silver|gold|blue|red|green|purple|yellow|pink|orange|navy|grey|gray|coral)\b'
 ]
 
 # Tech specifications

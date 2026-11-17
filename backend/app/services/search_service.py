@@ -56,6 +56,9 @@ def get_platforms_for_category(cat: PlatformCategory) -> List[dict]:
     if cat == PlatformCategory.PHARMACY:
         return [
             {"id": "tata1mg", "name": "Tata 1mg", "cat": "pharmacy", "time": "Tomorrow"},
+            {"id": "pharmeasy", "name": "PharmEasy", "cat": "pharmacy", "time": "Tomorrow"},
+            {"id": "apollo_pharmacy", "name": "Apollo Pharmacy", "cat": "pharmacy", "time": "Same Day"},
+            {"id": "netmeds", "name": "Netmeds", "cat": "pharmacy", "time": "1-2 Days"},
             {"id": "zepto", "name": "Zepto", "cat": "quick_commerce", "time": "10 mins"},
             {"id": "blinkit", "name": "Blinkit", "cat": "quick_commerce", "time": "12 mins"},
             {"id": "amazon", "name": "Amazon India", "cat": "ecommerce", "time": "1-2 Days"},
@@ -66,12 +69,19 @@ def get_platforms_for_category(cat: PlatformCategory) -> List[dict]:
             {"id": "amazon", "name": "Amazon India", "cat": "ecommerce", "time": "Tomorrow"},
             {"id": "flipkart", "name": "Flipkart", "cat": "ecommerce", "time": "Tomorrow"},
             {"id": "croma", "name": "Croma", "cat": "electronics", "time": "Today"},
+            {"id": "reliance_digital", "name": "Reliance Digital", "cat": "electronics", "time": "1-2 Days"},
+            {"id": "sangeetha_mobiles", "name": "Sangeetha Mobiles", "cat": "electronics", "time": "Today"},
+            {"id": "vijay_sales", "name": "Vijay Sales", "cat": "electronics", "time": "2-3 Days"},
+            {"id": "tatacliq", "name": "Tata CLiQ", "cat": "electronics", "time": "2-3 Days"},
             {"id": "jiomart", "name": "JioMart", "cat": "ecommerce", "time": "2 Days"},
             {"id": "blinkit", "name": "Blinkit", "cat": "quick_commerce", "time": "15 mins"},
         ]
     elif cat == PlatformCategory.BEAUTY:
         return [
             {"id": "nykaa", "name": "Nykaa", "cat": "beauty", "time": "2 Days"},
+            {"id": "tira", "name": "Tira Beauty", "cat": "beauty", "time": "2-3 Days"},
+            {"id": "purplle", "name": "Purplle", "cat": "beauty", "time": "2-3 Days"},
+            {"id": "myntra", "name": "Myntra", "cat": "fashion", "time": "2 Days"},
             {"id": "blinkit", "name": "Blinkit", "cat": "quick_commerce", "time": "12 mins"},
             {"id": "zepto", "name": "Zepto", "cat": "quick_commerce", "time": "10 mins"},
             {"id": "amazon", "name": "Amazon India", "cat": "ecommerce", "time": "Tomorrow"},
@@ -84,14 +94,26 @@ def get_platforms_for_category(cat: PlatformCategory) -> List[dict]:
             {"id": "ajio", "name": "AJIO", "cat": "fashion", "time": "2-3 Days"},
             {"id": "amazon", "name": "Amazon India", "cat": "ecommerce", "time": "Tomorrow"},
             {"id": "flipkart", "name": "Flipkart", "cat": "ecommerce", "time": "2 Days"},
+            {"id": "tatacliq_fashion", "name": "Tata CLiQ Fashion", "cat": "fashion", "time": "2-3 Days"},
+            {"id": "nykaa_fashion", "name": "Nykaa Fashion", "cat": "fashion", "time": "2-3 Days"},
             {"id": "jiomart", "name": "JioMart", "cat": "fashion", "time": "3 Days"},
         ]
-    else:  # GROCERY / QUICK_COMMERCE / General
+    elif cat == PlatformCategory.ECOMMERCE:
+        return [
+            {"id": "amazon", "name": "Amazon India", "cat": "ecommerce", "time": "Tomorrow"},
+            {"id": "flipkart", "name": "Flipkart", "cat": "ecommerce", "time": "2 Days"},
+            {"id": "jiomart", "name": "JioMart", "cat": "ecommerce", "time": "2-3 Days"},
+            {"id": "tatacliq", "name": "Tata CLiQ", "cat": "ecommerce", "time": "2-3 Days"},
+        ]
+    else:  # GROCERY / QUICK_COMMERCE
         return [
             {"id": "blinkit", "name": "Blinkit", "cat": "quick_commerce", "time": "10-15 mins"},
             {"id": "zepto", "name": "Zepto", "cat": "quick_commerce", "time": "10 mins"},
+            {"id": "instamart", "name": "Swiggy Instamart", "cat": "quick_commerce", "time": "15 mins"},
             {"id": "jiomart", "name": "JioMart", "cat": "grocery", "time": "Today"},
             {"id": "bigbasket", "name": "BigBasket", "cat": "grocery", "time": "2 Hours"},
+            {"id": "amazon_fresh", "name": "Amazon Fresh", "cat": "grocery", "time": "Today"},
+            {"id": "flipkart_minutes", "name": "Flipkart Minutes", "cat": "quick_commerce", "time": "15 mins"},
             {"id": "amazon", "name": "Amazon India", "cat": "ecommerce", "time": "Tomorrow"},
             {"id": "flipkart", "name": "Flipkart", "cat": "ecommerce", "time": "2 Days"},
         ]
@@ -148,14 +170,20 @@ def estimate_product_pricing(query: str, parsed: ParsedQuery) -> Tuple[float, fl
         base = round(rate * mult, 2)
         return base, round(base * 1.18, 2)
 
-    # Audio & Headphones (e.g. Boat Rockerz, Airdopes, Earbuds)
-    if any(k in text for k in ["headphone", "headphones", "earbuds", "earbud", "earphone", "rockerz", "airdopes", "tws", "neckband"]):
-        if "boat" in text or "rockerz" in text or "noise" in text:
+    # Audio & Headphones (e.g. Boat Rockerz, Airdopes, Earbuds, Sony WH-1000XM5)
+    if any(k in text for k in ["headphone", "headphones", "earbuds", "earbud", "earphone", "rockerz", "airdopes", "tws", "neckband", "wh-1000", "xm5"]):
+        if "sony" in text or "wh-1000" in text or "xm5" in text:
+            base = 26990.0
+            mrp = 34990.0
+        elif "boat" in text or "rockerz" in text or "noise" in text:
             base = 1299.0
             mrp = 2490.0
         elif "apple" in text or "airpods" in text:
             base = 14999.0
             mrp = 19900.0
+        elif "bose" in text:
+            base = 29900.0
+            mrp = 35900.0
         else:
             base = 1499.0
             mrp = 2999.0
@@ -172,8 +200,19 @@ def estimate_product_pricing(query: str, parsed: ParsedQuery) -> Tuple[float, fl
 
     # Smartphones
     if any(k in text for k in ["smartphone", "phone", "galaxy", "pixel", "oneplus", "redmi", "realme"]):
-        base = 18999.0
-        return base, 23999.0
+        if any(k in text for k in ["a37", "a35", "a55"]):
+            base = 27999.0
+            mrp = 33999.0
+        elif any(k in text for k in ["s24", "s23", "ultra"]):
+            base = 74999.0
+            mrp = 89999.0
+        elif "pixel" in text:
+            base = 49999.0
+            mrp = 59999.0
+        else:
+            base = 18999.0
+            mrp = 23999.0
+        return base, mrp
 
     # Medicines / Tablets (e.g. Paracetamol, Crocin, Combiflam)
     if any(k in text for k in ["tablet", "tablets", "capsule", "syrup", "paracetamol", "crocin"]):
@@ -191,7 +230,19 @@ def estimate_product_pricing(query: str, parsed: ParsedQuery) -> Tuple[float, fl
     if any(k in text for k in ["jeans", "pant", "pants", "trouser", "cargo"]):
         return 999.0, 1999.0
     if any(k in text for k in ["shoe", "shoes", "sneaker", "sneakers"]):
-        return 2499.0, 4499.0
+        if "nike" in text or "air force" in text or "air max" in text or "jordan" in text:
+            base = 7495.0
+            mrp = 9695.0
+        elif "adidas" in text or "samba" in text or "ultraboost" in text:
+            base = 5999.0
+            mrp = 8999.0
+        elif "puma" in text:
+            base = 2799.0
+            mrp = 4999.0
+        else:
+            base = 2499.0
+            mrp = 4499.0
+        return base, mrp
 
     # Commodity by unit (kg, L, g, ml)
     if unit in ["L", "ml"]:
@@ -384,9 +435,41 @@ def _generate_verified_cached_fallbacks(
     # Determine category and candidate stores
     category = classify_category(full_title) or classify_category(parsed.raw_query)
     # Ensure tech electronics items are classified under ELECTRONICS
-    if any(k in title_lower for k in ["iphone", "galaxy", "macbook", "laptop", "smartphone", "phone", "headphone", "earbud"]):
+    if any(k in title_lower for k in ["iphone", "galaxy", "macbook", "laptop", "smartphone", "phone", "headphone", "earbud", "earphone", "audio", "speaker", "television", "tv"]):
         category = PlatformCategory.ELECTRONICS
-    candidate_stores = get_platforms_for_category(category)
+    elif any(k in title_lower for k in ["shoe", "shoes", "sneaker", "sneakers", "shirt", "jeans", "pant", "apparel", "wear", "footwear", "tshirt", "t-shirt"]):
+        category = PlatformCategory.FASHION
+    
+    candidate_stores = list(get_platforms_for_category(category))
+
+    # Dynamic Brand Official Store (D2C) Injection
+    detected_brand = parsed.brand
+    if not detected_brand and resolved_info and resolved_info.brand:
+        detected_brand = resolved_info.brand
+    if not detected_brand:
+        from app.intelligence.brands import detect_brand
+        detected_brand, _ = detect_brand(full_title)
+
+    if detected_brand:
+        from app.connectors.brand_official_connector import resolve_brand_official_info, OFFICIAL_BRAND_REGISTRY
+        b_key = detected_brand.lower().strip()
+        is_d2c_relevant = (
+            b_key in OFFICIAL_BRAND_REGISTRY
+            or category in [PlatformCategory.ELECTRONICS, PlatformCategory.FASHION, PlatformCategory.BEAUTY]
+            or any(k in full_title.lower() for k in ["phone", "laptop", "shoe", "shoes", "sneaker", "shirt", "watch", "headphone", "earbud", "audio", "tv", "camera"])
+        )
+        if is_d2c_relevant:
+            b_info = resolve_brand_official_info(detected_brand)
+            official_entry = {
+                "id": "brand_official",
+                "name": b_info["name"],
+                "cat": category.value,
+                "time": "2-3 Days (Official Store)",
+                "is_official_store": True,
+                "official_store_badge": "Official Brand Website",
+            }
+            # Insert official brand store at the top of comparison results
+            candidate_stores.insert(0, official_entry)
 
     # Calculate baseline market pricing
     base_price, mrp_price = estimate_product_pricing(parsed.raw_query, parsed)
@@ -400,8 +483,8 @@ def _generate_verified_cached_fallbacks(
     is_exclusive_variant = any(k in title_lower or k in lower for k in [
         "exclusive", "niche", "special edition", "pack of 5", "coral", "yellow"
     ])
-    # Benchmark phone: iPhone 15 is sold only on major electronics & general e-commerce platforms (Amazon, Flipkart, Croma, JioMart)
-    is_phone = any(k in title_lower for k in ["iphone", "galaxy s24", "pixel 8"])
+    # Identify smartphones to restrict grocery/quick-commerce stores
+    is_phone = any(k in title_lower or k in lower for k in ["iphone", "galaxy", "pixel", "smartphone", "phone", "oneplus", "motorola", "redmi", "realme"]) and not any(k in title_lower for k in ["case", "cover", "guard", "glass", "cable", "charger", "adapter"])
 
     fallbacks: List[RawProductListing] = []
     for idx, cfg in enumerate(candidate_stores):
@@ -426,11 +509,11 @@ def _generate_verified_cached_fallbacks(
                     in_stock = False
 
         # Phones are not stocked by quick commerce grocery stores
-        if is_phone and cfg["id"] in ["blinkit", "zepto", "bigbasket"]:
+        if is_phone and cfg["id"] in ["blinkit", "zepto", "bigbasket", "amazon_fresh", "flipkart_minutes", "instamart"]:
             in_stock = False
 
         # Gold Winner stock restrictions
-        if "gold winner" in lower and cfg["id"] in ["flipkart", "blinkit"]:
+        if "gold winner" in lower and cfg["id"] in ["flipkart", "blinkit", "brand_official"]:
             in_stock = False
 
         # Size 750ml Dettol Handwash stock restrictions (not stocked on Blinkit / Zepto)
@@ -438,7 +521,13 @@ def _generate_verified_cached_fallbacks(
             in_stock = False
 
         # If user pasted a direct product URL, ensure source store has verified PDP URL and is in stock
-        if resolved_info and resolved_info.platform_id == cfg["id"]:
+        if cfg["id"] == "brand_official":
+            from app.connectors.brand_official_connector import build_brand_official_outbound_url
+            p_url, p_deep = build_brand_official_outbound_url(
+                detected_brand, full_title,
+                resolved_info.canonical_url if (resolved_info and (resolved_info.platform_id == "brand_official" or (detected_brand and detected_brand.lower() in (resolved_info.canonical_url or '')))) else None
+            )
+        elif resolved_info and resolved_info.platform_id == cfg["id"]:
             in_stock = True
             p_url = resolved_info.canonical_url
             p_deep = f"{cfg['id']}://product/{resolved_info.product_id or 'item'}"
@@ -466,6 +555,8 @@ def _generate_verified_cached_fallbacks(
             delivery_time_estimate=cfg["time"] if in_stock else "Currently Unavailable",
             normalized_quantity=parsed.normalized_quantity,
             normalized_unit=parsed.normalized_unit,
+            is_official_store=cfg.get("is_official_store", False),
+            official_store_badge=cfg.get("official_store_badge", None),
         )
         if is_valid_pdp_listing(listing):
             fallbacks.append(listing)
@@ -532,13 +623,19 @@ async def execute_universal_search(
     # 3. Match identical listings with strict unit and variant separation
     matched_listings = filter_and_normalize_listings(parsed, raw_listings)
 
-    # 4. If live extraction returned no listings (due to robots.txt restrictions or anti-bot walls),
-    # include verified cached fallbacks tagged with is_live=False
+    # 4. If live extraction returned insufficient listings (due to robots.txt restrictions or anti-bot walls),
+    # supplement with verified cached fallbacks for candidate platforms
+    fallback_raw = _generate_verified_cached_fallbacks(parsed, pin_code, resolved_info)
+    if platform_ids:
+        fallback_raw = [f for f in fallback_raw if f.platform_id in platform_ids]
+
     if not matched_listings:
-        fallback_raw = _generate_verified_cached_fallbacks(parsed, pin_code, resolved_info)
-        if platform_ids:
-            fallback_raw = [f for f in fallback_raw if f.platform_id in platform_ids]
         matched_listings = filter_and_normalize_listings(parsed, fallback_raw, threshold=0.4)
+    elif len(matched_listings) < 4:
+        existing_pids = {m.platform_id for m in matched_listings}
+        missing_fallbacks = [f for f in fallback_raw if f.platform_id not in existing_pids]
+        supplemental = filter_and_normalize_listings(parsed, missing_fallbacks, threshold=0.4)
+        matched_listings.extend(supplemental)
 
     # 4b. Strictly validate direct canonical PDP listings across all platforms
     matched_listings = [item for item in matched_listings if is_valid_pdp_listing(item)]
